@@ -1,0 +1,10 @@
+---
+kind: pipeline
+type: docker
+name: "advent-of-code-2023"
+
+steps:
+- name: unit tests
+  image: mozilla/sbt:11.0.8_1.3.13
+  commands:
+  - sbt test
