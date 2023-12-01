@@ -16,7 +16,6 @@ object Day01 {
       val last = findDigit(line, line.size-1, -1)
 
       val result = s"$first$last".toInt
-      println(s"$line, $first, $last, $result")
       result
     }.sum
   }
@@ -37,7 +36,6 @@ object Day01 {
     var i = start
     while (i < line.size) {
       if (line(i).isDigit) {
-        println(s"digit ${line(i)} at $i")
         return line(i).toString.toInt
       } else {
         val found = digits
@@ -45,7 +43,6 @@ object Day01 {
             (line.substring(i).startsWith(digit))
           }
         if (found.isDefined) {
-          println(s"digit ${found.get._1} at $i")
           return found.get._2
         }
       }
