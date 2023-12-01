@@ -48,27 +48,27 @@ object Utils {
     regex.findAllMatchIn(line).toSeq.map(_.group(0).toLong)
   }
 
-  // def split(
-  //     input: Seq[String],
-  //     isEmpty: String => Boolean = _.isBlank
-  // ): Seq[Seq[String]] = {
-  //   var groups = Seq[Seq[String]]()
-  //   var i = 0
-  //   while (i < input.size) {
-  //     var group = Seq[String]()
-  //     while (i < input.size && !isEmpty(input(i))) {
-  //       group = group :+ input(i)
-  //       i += 1
-  //     }
-  //     if (group.nonEmpty) {
-  //       groups = groups :+ group
-  //     }
-  //     while (i < input.size && isEmpty(input(i))) {
-  //       i += 1
-  //     }
-  //   }
-  //   groups
-  // }
+  def split(
+      input: Seq[String],
+      isEmpty: String => Boolean = _.isEmpty
+  ): Seq[Seq[String]] = {
+    var groups = Seq[Seq[String]]()
+    var i = 0
+    while (i < input.size) {
+      var group = Seq[String]()
+      while (i < input.size && !isEmpty(input(i))) {
+        group = group :+ input(i)
+        i += 1
+      }
+      if (group.nonEmpty) {
+        groups = groups :+ group
+      }
+      while (i < input.size && isEmpty(input(i))) {
+        i += 1
+      }
+    }
+    groups
+  }
 
   def inRange(pos: Vec2, min: Vec2, max: Vec2): Boolean =
     pos.x >= min.x && pos.x < max.x && pos.y >= min.y && pos.y < max.y
