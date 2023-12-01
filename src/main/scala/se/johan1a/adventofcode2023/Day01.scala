@@ -13,7 +13,7 @@ object Day01 {
   def part2(input: Seq[String]): Int = {
     input.map { line =>
       val first = findDigit(line, 0, 1)
-      val last = findDigit(line, line.size-1, -1)
+      val last = findDigit(line, line.size - 1, -1)
 
       val result = s"$first$last".toInt
       result
