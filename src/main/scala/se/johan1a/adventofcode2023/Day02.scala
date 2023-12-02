@@ -9,7 +9,7 @@ object Day02 {
   }
 
   def part2(input: Seq[String]): Int = {
-    -1
+    input.map(parseLine).map(checkGame2).sum
   }
 
   def checkGame(game: Game): Int = {
@@ -27,14 +27,30 @@ object Day02 {
     }
   }
 
+  def checkGame2(game: Game): Int = {
+    var minRequired = Map("red" -> 0, "green" -> 0, "blue" -> 0)
+    game.sets.foreach { set =>
+      set.foreach { case (color, amount) =>
+        val currentMin = minRequired(color)
+        if (amount > currentMin) {
+          minRequired = minRequired + (color -> amount)
+        }
+      }
+    }
+    minRequired.values.product
+  }
+
   def parseLine(line: String): Game = {
     val split0 = line.split(": ")
     val id = split0.head.split("Game ").last.toInt
     val sets = split0.last.split("; ").map { set =>
-      set.split(", ").map { str =>
-        val colorAmount = str.split(" ")
-        colorAmount.last -> colorAmount.head.toInt
-      }.toMap
+      set
+        .split(", ")
+        .map { str =>
+          val colorAmount = str.split(" ")
+          colorAmount.last -> colorAmount.head.toInt
+        }
+        .toMap
     }
     Game(id.toInt, sets)
   }
