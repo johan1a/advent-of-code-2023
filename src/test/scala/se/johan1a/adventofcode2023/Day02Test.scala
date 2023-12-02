@@ -4,8 +4,12 @@ import se.johan1a.adventofcode2023.TestInputUtil.getInput
 
 class Day02Test extends munit.FunSuite {
 
+  test("Part 1 test") {
+    assertEquals(Day02.part1(getInput("day02/test.txt")), 8)
+  }
+
   test("Part 1") {
-    assertEquals(Day02.part1(getInput("day02/input.txt")), -1)
+    assertEquals(Day02.part1(getInput("day02/input.txt")), 2149)
   }
 
   test("Part 2") {
