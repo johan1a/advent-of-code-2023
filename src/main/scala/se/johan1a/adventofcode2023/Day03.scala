@@ -1,6 +1,5 @@
 package se.johan1a.adventofcode2023
 
-import se.johan1a.adventofcode2023.Utils
 import scala.collection.mutable.ArrayBuffer
 
 object Day03 {
@@ -32,39 +31,11 @@ object Day03 {
     sum
   }
 
-  def checkNumber(grid: ArrayBuffer[ArrayBuffer[Char]], numberRow: Int, numberColStart: Int, numberColEnd: Int): Int = {
-
-    val adjacent = (numberColStart - 1).to(numberColEnd + 1).exists { col =>
-      if (col >= 0 && col < grid.size) {
-        val rowAbove = numberRow - 1
-        val rowBelow = numberRow + 1
-        (rowAbove >= 0 && !grid(rowAbove)(col).isDigit && grid(rowAbove)(col) != '.') ||
-        (rowBelow < grid.head.size && !grid(rowBelow)(col).isDigit && grid(rowBelow)(col) != '.')
-      } else { false }
-    }
-    if (adjacent) {
-      return getNumber(grid, numberRow, numberColStart, numberColEnd)
-    }
-
-    val colBefore = numberColStart - 1
-    if (colBefore >= 0 && !grid(numberRow)(colBefore).isDigit && grid(numberRow)(colBefore) != '.') {
-      return getNumber(grid, numberRow, numberColStart, numberColEnd)
-    }
-
-    val colAfter = numberColEnd + 1
-    if (colAfter < grid.head.size && !grid(numberRow)(colAfter).isDigit && grid(numberRow)(colAfter) != '.') {
-      return getNumber(grid, numberRow, numberColStart, numberColEnd)
-    }
-
-    0
-  }
-
   def part2(input: Seq[String]): Int = {
     val grid = Utils.makeGrid(input)
 
     var numbersAdjacentToGears = Map[(Int, Int), Seq[Int]]()
 
-    var sum = 0
     var i = 0
     var j = 0
     while (i < grid.size) {
@@ -102,6 +73,28 @@ object Day03 {
     }.sum
   }
 
+
+  def checkNumber(grid: ArrayBuffer[ArrayBuffer[Char]], numberRow: Int, numberColStart: Int, numberColEnd: Int): Int = {
+    val number = getNumber(grid, numberRow, numberColStart, numberColEnd)
+
+    def isSymbol = (row: Int, col: Int) =>
+      Utils.inRange(grid, row, col) && !grid(row)(col).isDigit && grid(row)(col) != '.'
+
+    val hasSymbolAboveOrBelow = (numberColStart - 1).to(numberColEnd + 1).exists { col =>
+      val rowAbove = numberRow - 1
+      val rowBelow = numberRow + 1
+      isSymbol(rowAbove, col) || isSymbol(rowBelow, col)
+    }
+
+    val colBefore = numberColStart - 1
+    val colAfter = numberColEnd + 1
+    if (hasSymbolAboveOrBelow || isSymbol(numberRow, colBefore) || isSymbol(numberRow, colAfter)) {
+      number
+    } else {
+      0
+    }
+  }
+
   def getAdjacentGears(
       grid: ArrayBuffer[ArrayBuffer[Char]],
       numberRow: Int,
@@ -109,36 +102,36 @@ object Day03 {
       numberColEnd: Int
   ): Seq[(Int, Int)] = {
 
-    var adjacentPositions: Seq[(Int, Int)] = (numberColStart - 1)
+    def isGear = (row: Int, col: Int) => Utils.inRange(grid, row, col) && grid(row)(col) == '*'
+
+    val gearsAboveAndBelow: Seq[(Int, Int)] = (numberColStart - 1)
       .to(numberColEnd + 1)
       .map { col =>
-        if (col >= 0 && col < grid.size) {
-          val rowAbove = numberRow - 1
-          val rowBelow = numberRow + 1
-          if (rowAbove >= 0 && grid(rowAbove)(col) == '*') {
-            Some((rowAbove, col))
-          } else if (rowBelow < grid.head.size && grid(rowBelow)(col) == '*') {
-            Some((rowBelow, col))
-          } else {
-            None
-          }
+        val rowAbove = numberRow - 1
+        val rowBelow = numberRow + 1
+        if (isGear(rowAbove, col)) {
+          Some((rowAbove, col))
+        } else if (isGear(rowBelow, col)) {
+          Some((rowBelow, col))
         } else {
           None
         }
       }
       .collect { case Some(pos) => pos }
 
+    var allGears = gearsAboveAndBelow
+
     val colBefore = numberColStart - 1
-    if (colBefore >= 0 && grid(numberRow)(colBefore) == '*') {
-      adjacentPositions = adjacentPositions :+ (numberRow, colBefore)
+    if (isGear(numberRow, colBefore)) {
+      allGears = allGears :+ (numberRow, colBefore)
     }
 
     val colAfter = numberColEnd + 1
-    if (colAfter < grid.head.size && grid(numberRow)(colAfter) == '*') {
-      adjacentPositions = adjacentPositions :+ (numberRow, colAfter)
+    if (isGear(numberRow, colAfter)) {
+      allGears = allGears :+ (numberRow, colAfter)
     }
 
-    adjacentPositions
+    allGears
   }
 
   def getNumber(grid: ArrayBuffer[ArrayBuffer[Char]], numberRow: Int, numberColStart: Int, numberColEnd: Int): Int = {

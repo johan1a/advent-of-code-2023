@@ -70,6 +70,9 @@ object Utils {
     groups
   }
 
+  def inRange(grid: ArrayBuffer[ArrayBuffer[Char]], row: Int, col: Int): Boolean =
+    inRange(Vec2(col, row), Vec2(0, 0), getMax(grid))
+
   def inRange(pos: Vec2, min: Vec2, max: Vec2): Boolean =
     pos.x >= min.x && pos.x < max.x && pos.y >= min.y && pos.y < max.y
 
