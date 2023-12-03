@@ -8,25 +8,25 @@ object Day03 {
     val grid = Utils.makeGrid(input)
 
     var sum = 0
-    var i = 0
-    var j = 0
-    while (i < grid.size) {
-      while (j < grid.head.size) {
-        if (!grid(i)(j).isDigit) {
-          j += 1
+    var row = 0
+    var col = 0
+    while (row < grid.size) {
+      while (col < grid.head.size) {
+        if (!grid(row)(col).isDigit) {
+          col += 1
         } else {
-          var end = j
-          while (end < grid.size && grid(i)(end).isDigit) {
+          var end = col
+          while (end < grid.size && grid(row)(end).isDigit) {
             end += 1
           }
-          // number is [j, end] inclusive
+          // number is columns [col, end] inclusive
           end -= 1
-          sum += checkNumber(grid, i, j, end)
-          j = end + 1
+          sum += checkNumber(grid, row, col, end)
+          col = end + 1
         }
       }
-      i += 1
-      j = 0
+      row += 1
+      col = 0
     }
     sum
   }
@@ -36,32 +36,33 @@ object Day03 {
 
     var numbersAdjacentToGears = Map[(Int, Int), Seq[Int]]()
 
-    var i = 0
-    var j = 0
-    while (i < grid.size) {
-      while (j < grid.head.size) {
-        if (!grid(i)(j).isDigit) {
-          j += 1
+    var row = 0
+    var col = 0
+    while (row < grid.size) {
+      while (col < grid.head.size) {
+        if (!grid(row)(col).isDigit) {
+          col += 1
         } else {
-          var end = j
-          while (end < grid.size && grid(i)(end).isDigit) {
+          var end = col
+          while (end < grid.size && grid(row)(end).isDigit) {
             end += 1
           }
+          // number is columns [col, end] inclusive
           end -= 1
 
-          // number is row i, cols [j, end] inclusive
-          val adjacentGearPositions = getAdjacentGears(grid, i, j, end)
-          val number = getNumber(grid, i, j, end)
+          val adjacentGearPositions = getAdjacentGears(grid, row, col, end)
+
+          val number = getNumber(grid, row, col, end)
           adjacentGearPositions.foreach { gearPos =>
             val currentAdjacentNumbers = numbersAdjacentToGears.getOrElse(gearPos, Seq.empty)
             numbersAdjacentToGears = numbersAdjacentToGears + (gearPos -> (currentAdjacentNumbers :+ number))
           }
 
-          j = end + 1
+          col = end + 1
         }
       }
-      i += 1
-      j = 0
+      row += 1
+      col = 0
     }
 
     numbersAdjacentToGears.map { case (_, numbers) =>
@@ -72,7 +73,6 @@ object Day03 {
       }
     }.sum
   }
-
 
   def checkNumber(grid: ArrayBuffer[ArrayBuffer[Char]], numberRow: Int, numberColStart: Int, numberColEnd: Int): Int = {
     val number = getNumber(grid, numberRow, numberColStart, numberColEnd)
