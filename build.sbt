@@ -8,3 +8,9 @@ lazy val root = (project in file(".")).
   )
 
 (Test / test) := (Test / test).dependsOn(Test / scalafmtCheck).value
+
+scalacOptions ++= Seq(
+  "-Xfatal-warnings",
+  "-Wunused:all",
+  "-deprecation"
+)

@@ -51,7 +51,7 @@ object Day02 {
           colorAmount.last -> colorAmount.head.toInt
         }
         .toMap
-    }
+    }.toSeq
     Game(id.toInt, sets)
   }
 }
