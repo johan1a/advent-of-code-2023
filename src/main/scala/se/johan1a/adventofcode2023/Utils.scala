@@ -1,4 +1,4 @@
-package se.johan1a.adventofcode2022
+package se.johan1a.adventofcode2023
 
 import scala.collection.mutable.ArrayBuffer
 
