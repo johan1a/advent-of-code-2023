@@ -2,21 +2,23 @@ package se.johan1a.adventofcode2023
 
 object Day04 {
 
-  case class Card(winning: Seq[Int], mine: Seq[Int])
+  case class Card(cardNbr: Int, winning: Seq[Int], mine: Seq[Int])
 
   def part1(input: Seq[String]): Int = {
     input.map(parseLine).map(check).sum
   }
 
   def part2(input: Seq[String]): Int = {
-    val cards: Map[Int, Card] =
-      input.map(parseLine).zipWithIndex.map { case (card, i) => (i + 1) -> card }.toMap
+    val cards: Map[Int, Card] = input
+      .map(parseLine)
+      .map(card => card.cardNbr -> card)
+      .toMap
     check2(cards)
   }
 
   def check(card: Card): Int = {
     card match {
-      case Card(winning: Seq[Int], mine: Seq[Int]) => {
+      case Card(_: Int, winning: Seq[Int], mine: Seq[Int]) => {
         val nbrWinning = winning.filter(mine.contains).size
         if (nbrWinning > 0) {
           Math.pow(2, nbrWinning - 1).toInt
@@ -47,11 +49,13 @@ object Day04 {
   }
 
   def parseLine(line: String): Card = {
-    val splitted = line.split(": ").last
-    val winningAndMine = splitted.split('|')
-    val winning = winningAndMine.head.split(" ").filter(_.nonEmpty).map(_.trim.toInt).toSeq
-    val mine = winningAndMine.last.split(" ").filter(_.nonEmpty).map(_.trim.toInt).toSeq
-    Card(winning, mine)
+    line match {
+      case s"Card $cardNbr: $winningStr | $mineStr" =>
+        def parseNumbers = (str: String) => str.split(" ").filter(_.nonEmpty).map(_.trim.toInt).toSeq
+        val winning = parseNumbers(winningStr)
+        val mine = parseNumbers(mineStr)
+        Card(cardNbr.trim.toInt, winning, mine)
+    }
   }
 
 }

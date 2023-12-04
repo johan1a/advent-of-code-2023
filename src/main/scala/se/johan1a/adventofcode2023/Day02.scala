@@ -43,15 +43,18 @@ object Day02 {
   def parseLine(line: String): Game = {
     val split0 = line.split(": ")
     val id = split0.head.split("Game ").last.toInt
-    val sets = split0.last.split("; ").map { set =>
-      set
-        .split(", ")
-        .map { str =>
-          val colorAmount = str.split(" ")
-          colorAmount.last -> colorAmount.head.toInt
-        }
-        .toMap
-    }.toSeq
+    val sets = split0.last
+      .split("; ")
+      .map { set =>
+        set
+          .split(", ")
+          .map { str =>
+            val colorAmount = str.split(" ")
+            colorAmount.last -> colorAmount.head.toInt
+          }
+          .toMap
+      }
+      .toSeq
     Game(id.toInt, sets)
   }
 }
