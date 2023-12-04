@@ -7,16 +7,36 @@ object Day04 {
   }
 
   def part2(input: Seq[String]): Int = {
-    -1
+    val cards: Map[Int, (Seq[Int], Seq[Int])] = input.map(parseLine).zipWithIndex.map { case (card, i ) => (i+1) -> card  }.toMap
+    check2(cards)
+  }
+
+  def check2(cards: Map[Int, (Seq[Int], Seq[Int])]): Int = {
+   var amounts = Map[Int, Int]()
+
+    1.to(cards.size).foreach { n =>
+      amounts = amounts + (n -> 1)
+    }
+
+
+    1.to(cards.size).foreach { n =>
+      val (winning, mine) = cards(n)
+      val nbrMatching: Int = winning.filter(mine.contains).size
+
+      val won = (n + 1).to(n + nbrMatching)
+      val amountOfCurrent = amounts(n)
+      won.foreach { w =>
+        amounts = amounts + (w -> (amountOfCurrent + amounts.getOrElse(w, 0)))
+      }
+    }
+
+    amounts.values.sum
   }
 
   def parseLine(line: String): (Seq[Int], Seq[Int]) = {
     val splitted = line.split(": ").last
-    println(splitted.toSeq)
     val winningAndMine = splitted.split('|')
-    println(winningAndMine.toSeq)
     val winning = winningAndMine.head.split(" ").filter(_.nonEmpty).map(_.trim.toInt).toSeq
-    println(winningAndMine.head.split(" ").toSeq)
     val mine = winningAndMine.last.split(" ").filter(_.nonEmpty).map(_.trim.toInt).toSeq
     (winning, mine)
   }
