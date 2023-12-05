@@ -2,24 +2,28 @@ package se.johan1a.adventofcode2023
 
 object Day05 {
 
-  def part1(input: Seq[String]): Int = {
-    val (seeds, conversions) = parse(input)
-    val results = seeds.map(convert(conversions, "seed", _))
-    results.min.toInt
+  case class Range(var start: Long, var end: Long, increase: Long) {
+    def contains(n: Long) = start <= n && end >= n
   }
 
-  def convert(conversions: Seq[Conversion], sourceLabel: String, source: Long): Long = {
-    if (sourceLabel == "location") {
-      source
-    } else {
-      val conversion = conversions.head
-      val newSource = conversion.ranges.find { range =>
-        range.contains(source)
-      } match {
-        case Some(range) => (source + range.increase)
-        case None        => source
-      }
-      convert(conversions.drop(1), conversion.dest, newSource)
+  case class Conversion(source: String, dest: String, ranges: Seq[Range])
+
+  def part1(input: Seq[String]): Int = {
+    val (seeds, conversions) = parse(input)
+    seeds.map(convert(conversions, _)).min.toInt
+  }
+
+  def convert(conversions: Seq[Conversion], source: Long): Long = {
+    conversions match {
+      case Nil => source
+      case conversion +: tail =>
+        val newSource = conversion.ranges.find { range =>
+          range.contains(source)
+        } match {
+          case Some(range) => (source + range.increase)
+          case None        => source
+        }
+        convert(tail, newSource)
     }
   }
 
@@ -28,71 +32,68 @@ object Day05 {
     val seedRanges: Seq[Range] =
       Utils.numbers(input.head).grouped(2).map { nn => (Range(nn.head, nn.head + nn.last - 1, 0)) }.toSeq
 
-    mapRanges(conversions, "seed", seedRanges).head.start.toInt
+    mapRanges(conversions, seedRanges).head.start.toInt
   }
 
-  def mapRanges(conversions: Seq[Conversion], sourceLabel: String, sourceRanges: Seq[Range]): Seq[Range] = {
-    if (conversions.isEmpty) {
-      sourceRanges
-    } else {
-      val conversion = conversions.head
+  def mapRanges(conversions: Seq[Conversion], sourceRanges: Seq[Range]): Seq[Range] = {
+    conversions match {
+      case Nil => sourceRanges
+      case conversion +: tail =>
+        var rangesFrom = sourceRanges.sortBy(_.end)
+        var rangesTo: Seq[Range] = conversion.ranges
+        var result: Seq[Range] = Seq.empty
 
-      var rangesA = sourceRanges.sortBy(_.end)
-      var rangesB: Seq[Range] = conversion.ranges.sortBy(_.end)
-      var result: Seq[Range] = Seq.empty
-      while (rangesA.nonEmpty && rangesB.nonEmpty) {
+        while (rangesFrom.nonEmpty && rangesTo.nonEmpty) {
 
-        // "God, forgive me!"
-        //    - Tommy Wiseau
-        if (rangesA.head.start == rangesB.head.start) {
-          val start = rangesA.head.start
+          // "God, forgive me!"
+          //    - Tommy Wiseau
+          if (rangesFrom.head.start == rangesTo.head.start) {
+            val start = rangesFrom.head.start
 
-          if (rangesB.head.end < rangesA.head.end) {
-            val end = rangesB.head.end
-            result = result :+ Range(start, end, rangesB.head.increase)
-            rangesB = rangesB.drop(1)
-            rangesA.head.start = end + 1
-          } else if (rangesA.head.end < rangesB.head.end) {
-            val end = rangesA.head.end
-            result = result :+ Range(start, end, rangesB.head.increase)
-            rangesA = rangesA.drop(1)
-            rangesB.head.start = end + 1
+            if (rangesTo.head.end < rangesFrom.head.end) {
+              val end = rangesTo.head.end
+              result = result :+ Range(start, end, rangesTo.head.increase)
+              rangesTo = rangesTo.drop(1)
+              rangesFrom.head.start = end + 1
+            } else if (rangesFrom.head.end < rangesTo.head.end) {
+              val end = rangesFrom.head.end
+              result = result :+ Range(start, end, rangesTo.head.increase)
+              rangesFrom = rangesFrom.drop(1)
+              rangesTo.head.start = end + 1
+            } else {
+              val end = rangesTo.head.end
+              result = result :+ Range(start, end, rangesTo.head.increase)
+              rangesTo = rangesTo.drop(1)
+              rangesFrom = rangesFrom.drop(1)
+            }
+          } else if (rangesFrom.head.start < rangesTo.head.start) {
+            val start = rangesFrom.head.start
+
+            if (rangesFrom.head.end < rangesTo.head.start) {
+              val end = rangesFrom.head.end
+              result = result :+ Range(start, end, rangesFrom.head.increase)
+              rangesFrom = rangesFrom.drop(1)
+            } else {
+              val end = rangesTo.head.start - 1
+              result = result :+ Range(start, end, rangesFrom.head.increase)
+              rangesFrom.head.start = rangesTo.head.start
+            }
           } else {
-            val end = rangesB.head.end
-            result = result :+ Range(start, end, rangesB.head.increase)
-            rangesB = rangesB.drop(1)
-            rangesA = rangesA.drop(1)
-          }
-        } else if (rangesA.head.start < rangesB.head.start) {
-          val start = rangesA.head.start
-
-          if (rangesA.head.end < rangesB.head.start) {
-            val end = rangesA.head.end
-            result = result :+ Range(start, end, rangesA.head.increase)
-            rangesA = rangesA.drop(1)
-          } else {
-            val end = rangesB.head.start - 1
-            result = result :+ Range(start, end, rangesA.head.increase)
-            rangesA.head.start = rangesB.head.start
-          }
-        } else {
-          // rangesB.head.start < rangesA.head.start
-          if (rangesB.head.end < rangesA.head.start) {
-            // no mapping from source to dest for this interval, drop it
-            rangesB = rangesB.drop(1)
-          } else {
-            // remove the part from B that falls outside the source interval
-            rangesB.head.start = rangesA.head.start
+            if (rangesTo.head.end < rangesFrom.head.start) {
+              // no mapping from source to dest for this interval, drop it
+              rangesTo = rangesTo.drop(1)
+            } else {
+              // remove the part from rangesTo that falls outside the source interval
+              rangesTo.head.start = rangesFrom.head.start
+            }
           }
         }
-      }
 
-      result ++= rangesA
+        result ++= rangesFrom
+        result = result.map(range => Range(range.start + range.increase, range.end + range.increase, 0))
+        result = mergeRanges(result.sortBy(_.start))
 
-      result = result.map(range => Range(range.start + range.increase, range.end + range.increase, 0))
-      result = mergeRanges(result.sortBy(_.start))
-
-      mapRanges(conversions.drop(1), conversion.dest, result)
+        mapRanges(tail, result)
     }
   }
 
@@ -120,12 +121,6 @@ object Day05 {
       .map(parseConversion)
     (seeds, conversions)
   }
-
-  case class Range(var start: Long, var end: Long, increase: Long) {
-    def contains(n: Long) = start <= n && end >= n
-  }
-
-  case class Conversion(source: String, dest: String, ranges: Seq[Range])
 
   def parseConversion(lines: Seq[String]) = {
     val (source, dest) = lines.head match {
