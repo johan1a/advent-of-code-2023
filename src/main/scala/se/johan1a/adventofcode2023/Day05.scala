@@ -8,7 +8,7 @@ object Day05 {
     results.min.toInt
   }
 
-  def convert(conversions: Seq[Conversion], sourceLabel: String, source: BigInt): BigInt = {
+  def convert(conversions: Seq[Conversion], sourceLabel: String, source: Long): Long = {
     if (sourceLabel == "location") {
       source
     } else {
@@ -25,53 +25,92 @@ object Day05 {
 
   def part2(input: Seq[String]): Int = {
     val (_, conversions) = parse(input)
-    val seedRanges: Seq[(BigInt, BigInt)] =
-      Utils.numbers(input.head).grouped(2).map { nn => (BigInt(nn.head), BigInt(nn.head + nn.last - 1)) }.toSeq
-    // conversions.foreach(println)
+    val seedRanges: Seq[Range] =
+      Utils.numbers(input.head).grouped(2).map { nn => (Range(nn.head, nn.head + nn.last - 1, 0)) }.toSeq
 
-    var best: Option[BigInt] = None
-    seedRanges.foreach { case (start, end) =>
-      start.to(end).foreach { seed =>
-        val result = (convert(conversions, "seed", seed))
-        if (best.isEmpty || result < best.get) {
-          best = Some(result)
-          println(s"best: $best")
-        }
-      }
-    // println(s"start $start, end $end, r $r")
-    }
-
-    best.get.toInt
+    mapRanges(conversions, "seed", seedRanges).head.start.toInt
   }
 
-  //def part2Wip(input: Seq[String]): Int = {
-  //  val (_, conversions) = parse(input)
-  //  val seedRanges: Seq[(BigInt, BigInt)] =
-  //    Utils.numbers(input.head).grouped(2).map { nn => (BigInt(nn.head), BigInt(nn.head + nn.last - 1)) }.toSeq
+  def mapRanges(conversions: Seq[Conversion], sourceLabel: String, sourceRanges: Seq[Range]): Seq[Range] = {
+    if (conversions.isEmpty) {
+      sourceRanges
+    } else {
+      val conversion = conversions.head
 
-  //  var best: Option[BigInt] = None
-  //  seedRanges.foreach { case (start, end) =>
-  //    //val result: Seq[(BigInt, BigInt)] = (convert2(conversions, "seed", Seq(Range(start, end, 0))))
-  //    // TODO check best
-  //  }
+      var rangesA = sourceRanges.sortBy(_.end)
+      var rangesB: Seq[Range] = conversion.ranges.sortBy(_.end)
+      var result: Seq[Range] = Seq.empty
+      while (rangesA.nonEmpty && rangesB.nonEmpty) {
 
-  //  best.get.toInt
-  //}
+        // "God, forgive me!"
+        //    - Tommy Wiseau
+        if (rangesA.head.start == rangesB.head.start) {
+          val start = rangesA.head.start
 
-  // def convert2(conversions: Seq[Conversion], sourceLabel: String, sourceRanges: Seq[Range]) = {
-  //   if(conversions.isEmpty){
-  //     sourceRanges
-  //   } else {
+          if (rangesB.head.end < rangesA.head.end) {
+            val end = rangesB.head.end
+            result = result :+ Range(start, end, rangesB.head.increase)
+            rangesB = rangesB.drop(1)
+            rangesA.head.start = end+1
+          } else if (rangesA.head.end < rangesB.head.end) {
+            val end = rangesA.head.end
+            result = result :+ Range(start, end, rangesB.head.increase)
+            rangesA = rangesA.drop(1)
+            rangesB.head.start = end + 1
+          } else {
+            val end = rangesB.head.end
+            result = result :+ Range(start, end, rangesB.head.increase)
+            rangesB = rangesB.drop(1)
+            rangesA = rangesA.drop(1)
+          }
+        } else if (rangesA.head.start < rangesB.head.start) {
+          val start = rangesA.head.start
 
-  //   val conversion = conversions.head
-  //   var rangesA: Seq[Range] = conversion.ranges
-  //   var rangesB = sourceRanges
-  //   var result: Seq[Range] = Seq.empty
-  //   while (rangesA.nonEmpty && rangesB.nonEmpty) {
-  //   }
+          if (rangesA.head.end < rangesB.head.start) {
+            val end = rangesA.head.end
+            result = result :+ Range(start, end, rangesA.head.increase)
+            rangesA = rangesA.drop(1)
+          } else {
+            val end = rangesB.head.start - 1
+            result = result :+ Range(start, end, rangesA.head.increase)
+            rangesA.head.start = rangesB.head.start
+          }
+        } else {
+          // rangesB.head.start < rangesA.head.start
+          if (rangesB.head.end < rangesA.head.start) {
+            // no mapping from source to dest for this interval, drop it
+            rangesB = rangesB.drop(1)
+          } else {
+            // remove the part from B that falls outside the source interval
+            rangesB.head.start = rangesA.head.start
+          }
+        }
+      }
 
-  //   }
-  // }
+      result ++= rangesA
+
+      result = result.map(range => Range(range.start + range.increase, range.end + range.increase, 0))
+      result = mergeRanges(result.sortBy(_.start))
+
+      mapRanges(conversions.drop(1), conversion.dest, result)
+    }
+  }
+
+  def mergeRanges(allRanges: Seq[Range]): Seq[Range] = {
+    var stack = Seq[Range](allRanges.head)
+    var ranges = allRanges.tail
+    while (ranges.nonEmpty) {
+      val current = ranges.head
+      ranges = ranges.tail
+
+      if (stack.last.end < current.start) {
+        stack = stack :+ current
+      } else if (stack.last.end < current.end) {
+        stack.last.end = current.end
+      }
+    }
+    stack
+  }
 
   def parse(input: Seq[String]) = {
     val splitted: Seq[Seq[String]] = Utils.split(input)
@@ -82,8 +121,8 @@ object Day05 {
     (seeds, conversions)
   }
 
-  case class Range(start: BigInt, end: BigInt, increase: BigInt) {
-    def contains(n: BigInt) = start <= n && end >= n
+  case class Range(var start: Long, var end: Long, increase: Long) {
+    def contains(n: Long) = start <= n && end >= n
   }
 
   case class Conversion(source: String, dest: String, ranges: Seq[Range])
@@ -93,14 +132,18 @@ object Day05 {
       case s"${source}-to-${dest} map:" =>
         (source, dest)
     }
-    val ranges = lines.drop(1).map(Utils.numbers).map { numbers =>
-      val dest = numbers.head
-      val start = numbers(1)
-      val size = numbers(2)
-      val end = start + size - 1
-      val increase = dest - start
-      Range(start, end, increase)
-    }.sortBy(_.end)
+    val ranges = lines
+      .drop(1)
+      .map(Utils.numbers)
+      .map { numbers =>
+        val dest = numbers.head
+        val start = numbers(1)
+        val size = numbers(2)
+        val end = start + size - 1
+        val increase = dest - start
+        Range(start, end, increase)
+      }
+      .sortBy(_.end)
     Conversion(source, dest, ranges)
   }
 }
