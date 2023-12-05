@@ -28,10 +28,7 @@ object Day05 {
   }
 
   def part2(input: Seq[String]): Int = {
-    val (_, conversions) = parse(input)
-    val seedRanges: Seq[Range] =
-      Utils.numbers(input.head).grouped(2).map { nn => (Range(nn.head, nn.head + nn.last - 1, 0)) }.toSeq
-
+    val (seedRanges, conversions) = parse2(input)
     mapRanges(conversions, seedRanges).head.start.toInt
   }
 
@@ -39,7 +36,7 @@ object Day05 {
     conversions match {
       case Nil => sourceRanges
       case conversion +: tail =>
-        var rangesFrom = sourceRanges.sortBy(_.end)
+        var rangesFrom = sourceRanges
         var rangesTo: Seq[Range] = conversion.ranges
         var result: Seq[Range] = Seq.empty
 
@@ -120,6 +117,18 @@ object Day05 {
       .drop(1)
       .map(parseConversion)
     (seeds, conversions)
+  }
+
+  def parse2(input: Seq[String]) = {
+    val (_, conversions) = parse(input)
+    val seedRanges: Seq[Range] =
+      Utils
+        .numbers(input.head)
+        .grouped(2)
+        .map { nn => (Range(nn.head, nn.head + nn.last - 1, 0)) }
+        .toSeq
+        .sortBy(_.end)
+    (seedRanges, conversions)
   }
 
   def parseConversion(lines: Seq[String]) = {
