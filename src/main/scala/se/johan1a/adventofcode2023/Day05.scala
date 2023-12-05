@@ -51,7 +51,7 @@ object Day05 {
             val end = rangesB.head.end
             result = result :+ Range(start, end, rangesB.head.increase)
             rangesB = rangesB.drop(1)
-            rangesA.head.start = end+1
+            rangesA.head.start = end + 1
           } else if (rangesA.head.end < rangesB.head.end) {
             val end = rangesA.head.end
             result = result :+ Range(start, end, rangesB.head.increase)
