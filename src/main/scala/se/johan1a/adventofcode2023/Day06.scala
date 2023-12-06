@@ -14,7 +14,9 @@ object Day06 {
 
   def part2(input: Seq[String]): Int = {
     val (duration, distance) = parse2(input)
-    check2(duration, distance).toInt
+    val startOfWins = search(duration, distance, true)
+    val endOfWins = search(duration, distance, false)
+    (endOfWins - startOfWins).toInt
   }
 
   def check(duration: Long, record: Long): Long = {
@@ -27,12 +29,6 @@ object Day06 {
         result > record
       }
       .size
-  }
-
-  def check2(duration: Long, distance: Long): Long = {
-    val startOfWins = search(duration, distance, true)
-    val endOfWins = search(duration, distance, false)
-    endOfWins - startOfWins
   }
 
   def search(duration: Long, distance: Long, shouldWin: Boolean): Long = {
