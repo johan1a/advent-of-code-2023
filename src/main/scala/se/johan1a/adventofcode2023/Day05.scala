@@ -41,47 +41,49 @@ object Day05 {
         var result: Seq[Range] = Seq.empty
 
         while (rangesFrom.nonEmpty && rangesTo.nonEmpty) {
+          val nextFrom = rangesFrom.head
+          val nextTo = rangesTo.head
 
           // "God, forgive me!"
           //    - Tommy Wiseau
-          if (rangesFrom.head.start == rangesTo.head.start) {
-            val start = rangesFrom.head.start
+          if (nextFrom.start == nextTo.start) {
+            val start = nextFrom.start
 
-            if (rangesTo.head.end < rangesFrom.head.end) {
-              val end = rangesTo.head.end
-              result = result :+ Range(start, end, rangesTo.head.increase)
+            if (nextTo.end < nextFrom.end) {
+              val end = nextTo.end
+              result = result :+ Range(start, end, nextTo.increase)
               rangesTo = rangesTo.drop(1)
-              rangesFrom.head.start = end + 1
-            } else if (rangesFrom.head.end < rangesTo.head.end) {
-              val end = rangesFrom.head.end
-              result = result :+ Range(start, end, rangesTo.head.increase)
+              nextFrom.start = end + 1
+            } else if (nextFrom.end < nextTo.end) {
+              val end = nextFrom.end
+              result = result :+ Range(start, end, nextTo.increase)
               rangesFrom = rangesFrom.drop(1)
-              rangesTo.head.start = end + 1
+              nextTo.start = end + 1
             } else {
-              val end = rangesTo.head.end
-              result = result :+ Range(start, end, rangesTo.head.increase)
+              val end = nextTo.end
+              result = result :+ Range(start, end, nextTo.increase)
               rangesTo = rangesTo.drop(1)
               rangesFrom = rangesFrom.drop(1)
             }
-          } else if (rangesFrom.head.start < rangesTo.head.start) {
-            val start = rangesFrom.head.start
+          } else if (nextFrom.start < nextTo.start) {
+            val start = nextFrom.start
 
-            if (rangesFrom.head.end < rangesTo.head.start) {
-              val end = rangesFrom.head.end
-              result = result :+ Range(start, end, rangesFrom.head.increase)
+            if (nextFrom.end < nextTo.start) {
+              val end = nextFrom.end
+              result = result :+ Range(start, end, nextFrom.increase)
               rangesFrom = rangesFrom.drop(1)
             } else {
-              val end = rangesTo.head.start - 1
-              result = result :+ Range(start, end, rangesFrom.head.increase)
-              rangesFrom.head.start = rangesTo.head.start
+              val end = nextTo.start - 1
+              result = result :+ Range(start, end, nextFrom.increase)
+              nextFrom.start = nextTo.start
             }
           } else {
-            if (rangesTo.head.end < rangesFrom.head.start) {
+            if (nextTo.end < nextFrom.start) {
               // no mapping from source to dest for this interval, drop it
               rangesTo = rangesTo.drop(1)
             } else {
               // remove the part from rangesTo that falls outside the source interval
-              rangesTo.head.start = rangesFrom.head.start
+              nextTo.start = nextFrom.start
             }
           }
         }
