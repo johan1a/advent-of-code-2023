@@ -19,7 +19,7 @@ object Day06 {
 
   def check(duration: Long, record: Long): Long = {
     0.until(duration.toInt)
-      .filter { minutesWaited =>
+      .map { minutesWaited =>
         val speed = minutesWaited
         speed * (duration - minutesWaited)
       }
