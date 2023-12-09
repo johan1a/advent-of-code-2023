@@ -3,11 +3,15 @@ package se.johan1a.adventofcode2023
 object Day09 {
 
   def part1(input: Seq[String]): Long = {
-    parse(input).map(getNextValue).sum
+    parse(input).map(getEndValue).sum
   }
 
   def part2(input: Seq[String]): Long = {
-    parse(input).map(getPrevValue).sum
+    parse(input).map(_.reverse).map(getEndValue).sum
+  }
+
+  def getEndValue(numbers: Seq[Long]): Long = {
+    extrapolate(numbers).foldLeft(0L)((lastDiff,currentRow) => currentRow.last + lastDiff)
   }
 
   def extrapolate(numbers: Seq[Long]): Seq[Seq[Long]] = {
@@ -19,39 +23,13 @@ object Day09 {
         .map { nn =>
           val a = nn.head
           val b = nn.last
-          (b - a)
+          b - a
         }
         .toSeq
       stack = nextRow +: stack
       rowAbove = nextRow
     }
     stack
-  }
-
-  def getNextValue(numbers: Seq[Long]): Long = {
-    var stack = extrapolate(numbers)
-
-    var lastDiff = 0L
-    while (stack.size > 0) {
-      val currentRow = stack.head
-      lastDiff = currentRow.last + lastDiff
-      stack = stack.tail
-    }
-
-    lastDiff
-  }
-
-  def getPrevValue(numbers: Seq[Long]): Long = {
-    var stack = extrapolate(numbers)
-
-    var lastDiff = 0L
-    while (stack.size > 0) {
-      val currentRow = stack.head
-      lastDiff = currentRow.head - lastDiff
-      stack = stack.tail
-    }
-
-    lastDiff
   }
 
   def parse(input: Seq[String]) = {
