@@ -50,6 +50,6 @@ if [ ! -f "./info/day$paddedDay.html" ];
   echo Done...
 end
 
-elinks info/day$paddedDay.html
+#elinks info/day$paddedDay.html
 
 echo My work is done here... Good luck, and Ho ho ho!
