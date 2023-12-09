@@ -10,7 +10,7 @@ object Day09 {
     parse(input).map(getPrevValue).sum
   }
 
-  def getNextValue(numbers: Seq[Long]): Long = {
+  def extrapolate(numbers: Seq[Long]): Seq[Seq[Long]] = {
     var stack = Seq[Seq[Long]](numbers)
     var rowAbove = stack.head
     while (!rowAbove.forall(_ == 0)) {
@@ -25,7 +25,11 @@ object Day09 {
       stack = nextRow +: stack
       rowAbove = nextRow
     }
+    stack
+  }
 
+  def getNextValue(numbers: Seq[Long]): Long = {
+    var stack = extrapolate(numbers)
 
     var lastDiff = 0L
     while (stack.size > 0) {
@@ -38,21 +42,7 @@ object Day09 {
   }
 
   def getPrevValue(numbers: Seq[Long]): Long = {
-    var stack = Seq[Seq[Long]](numbers)
-    var rowAbove = stack.head
-    while (!rowAbove.forall(_ == 0)) {
-      val nextRow = rowAbove
-        .sliding(2)
-        .map { nn =>
-          val a = nn.head
-          val b = nn.last
-          (b - a)
-        }
-        .toSeq
-      stack = nextRow +: stack
-      rowAbove = nextRow
-    }
-
+    var stack = extrapolate(numbers)
 
     var lastDiff = 0L
     while (stack.size > 0) {
