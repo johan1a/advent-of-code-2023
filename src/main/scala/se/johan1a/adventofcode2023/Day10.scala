@@ -7,6 +7,8 @@ import scala.annotation.tailrec
 
 object Day10 {
 
+  type Grid = ArrayBuffer[ArrayBuffer[Char]]
+
   def part1(input: Seq[String]): Int = {
     val grid = Utils.makeGrid(input)
     val start = findStart(grid)
@@ -23,7 +25,7 @@ object Day10 {
 
   @tailrec
   def makeLoop(
-      grid: ArrayBuffer[ArrayBuffer[Char]],
+      grid: Grid,
       queue: Seq[(Vec2, Int)],
       seen: Set[Vec2] = Set.empty,
       maxDist: Int = 0
@@ -38,7 +40,7 @@ object Day10 {
     }
   }
 
-  def compatibleNeighbors(grid: ArrayBuffer[ArrayBuffer[Char]], pos: Vec2): Seq[Vec2] = {
+  def compatibleNeighbors(grid: Grid, pos: Vec2): Seq[Vec2] = {
     neighbors(pos, min = Vec2(0, 0), getMax(grid), includeDiagonals = false).filter { case neighbor =>
       compatible(grid, Seq(pos, neighbor).sortBy(p => (p.x, p.y)))
     }
@@ -46,7 +48,7 @@ object Day10 {
 
   @tailrec
   def countContained(
-      grid: ArrayBuffer[ArrayBuffer[Char]],
+      grid: Grid,
       loop: Set[Vec2],
       queue: Seq[Vec2],
       outside: Set[Vec2] = Set.empty,
@@ -73,7 +75,7 @@ object Day10 {
 
   @tailrec
   def flood(
-      grid: ArrayBuffer[ArrayBuffer[Char]],
+      grid: Grid,
       outside: Set[Vec2],
       loop: Set[Vec2],
       queue: Seq[Vec2],
@@ -105,7 +107,7 @@ object Day10 {
         }
     }
 
-  def double(grid: ArrayBuffer[ArrayBuffer[Char]]): ArrayBuffer[ArrayBuffer[Char]] = {
+  def double(grid: Grid): Grid = {
     val result = ArrayBuffer.fill(grid.size * 2)(ArrayBuffer.fill(grid.head.size * 2)('?'))
 
     0.until(grid.size).foreach { y =>
@@ -136,7 +138,7 @@ object Day10 {
     result
   }
 
-  def compatible(grid: ArrayBuffer[ArrayBuffer[Char]], positions: Seq[Vec2]): Boolean = {
+  def compatible(grid: Grid, positions: Seq[Vec2]): Boolean = {
     val aPos = positions.head
     val bPos = positions.last
     val a = get(grid, aPos)
@@ -154,7 +156,7 @@ object Day10 {
     }
   }
 
-  def findStart(grid: ArrayBuffer[ArrayBuffer[Char]]): Vec2 = {
+  def findStart(grid: Grid): Vec2 = {
     grid.zipWithIndex.flatMap { case (row, i) =>
       row.zipWithIndex
         .map { case (char, j) =>
