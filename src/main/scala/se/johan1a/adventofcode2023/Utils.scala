@@ -70,6 +70,8 @@ object Utils {
     groups
   }
 
+  def inRange(grid: ArrayBuffer[ArrayBuffer[Char]], pos: Vec2): Boolean = inRange(pos, Vec2(0, 0), getMax(grid))
+
   def inRange(grid: ArrayBuffer[ArrayBuffer[Char]], row: Int, col: Int): Boolean =
     inRange(Vec2(col, row), Vec2(0, 0), getMax(grid))
 
@@ -78,6 +80,13 @@ object Utils {
 
   def inRange(pos: Vec3, min: Vec3, max: Vec3): Boolean =
     pos.x >= min.x && pos.x < max.x && pos.y >= min.y && pos.y < max.y && pos.z >= min.z && pos.z < max.z
+
+  def positions(grid: ArrayBuffer[ArrayBuffer[Char]]): Seq[Vec2] =
+    grid.indices.flatMap { y =>
+      grid.head.indices.map { x =>
+        Vec2(x, y)
+      }
+    }
 
   def neighbors(
       pos: Vec2,
@@ -127,6 +136,16 @@ object Utils {
 
   def makeGrid(lines: Seq[String]): ArrayBuffer[ArrayBuffer[Char]] = {
     new ArrayBuffer().appendAll(lines.map(l => new ArrayBuffer().appendAll(l)))
+  }
+
+  def get(grid: ArrayBuffer[ArrayBuffer[Char]], pos: Vec2) = {
+    grid(pos.y.toInt)(pos.x.toInt)
+  }
+
+  def printGrid(grid: ArrayBuffer[ArrayBuffer[Char]]) = {
+    grid.foreach { line =>
+      println(line.mkString(""))
+    }
   }
 
   def getMax(grid: ArrayBuffer[ArrayBuffer[Char]]): Vec2 =

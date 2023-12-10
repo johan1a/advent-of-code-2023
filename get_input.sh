@@ -47,9 +47,10 @@ end
 if [ ! -f "./info/day$paddedDay.html" ];
   echo Downloading info...
   http "https://adventofcode.com/$year/day/$day" cookie:session=$session User-Agent:$userAgent > ./info/day$paddedDay.html
+  pandoc --from html --to markdown_strict -o ./info/day$paddedDay.md ./info/day$paddedDay.html
   echo Done...
 end
 
-#elinks info/day$paddedDay.html
+nvim ./info/day$paddedDay.md
 
 echo My work is done here... Good luck, and Ho ho ho!
