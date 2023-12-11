@@ -244,4 +244,11 @@ object Utils {
     Seq(right, left, down, up)
   }
 
+  def pairs[T](seq: Seq[T]): Seq[(T, T)] =
+    0.until(seq.size).flatMap { i =>
+      (i + 1).until(seq.size).map { j =>
+        (seq(i), seq(j))
+      }
+    }
+
 }
