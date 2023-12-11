@@ -28,7 +28,7 @@ object Utils {
     }
   }
 
-  def manhattan(a: (Int, Int), b: (Int, Int)): Int = {
+  def manhattan(a: (Long, Long), b: (Long, Long)): Long = {
     val diff = (a._1 - b._1, a._2 - b._2)
     diff._1.abs + diff._2.abs
   }
