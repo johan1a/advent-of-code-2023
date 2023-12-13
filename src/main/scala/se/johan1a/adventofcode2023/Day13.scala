@@ -23,6 +23,24 @@ object Day13 {
     split(input).map(makeGrid).map(findMirror2).map(_.score).sum
   }
 
+  def findMirror(grid: ArrayBuffer[ArrayBuffer[Char]], tolerance: Int = 0): Result = {
+    val fromTop: Option[Int] = 0.until(grid.size - 1).find { row =>
+      mirrorAtRow(grid, row, tolerance)
+    }
+    fromTop match {
+      case Some(row) =>
+        RowMatch(row)
+      case None =>
+        0.until(grid.head.size - 1).find { col =>
+          mirrorAtCol(grid, col, tolerance)
+        } match {
+          case Some(col) =>
+            ColMatch(col)
+          case None => throw new Exception("none found")
+        }
+    }
+  }
+
   def findMirror2(grid: ArrayBuffer[ArrayBuffer[Char]]): Result = {
     val tolerance = 1
     val originalMirror = findMirror(grid)
@@ -36,24 +54,6 @@ object Day13 {
       case None =>
         0.until(grid.head.size - 1).find { col =>
           originalMirror != ColMatch(col) && mirrorAtCol(grid, col, tolerance)
-        } match {
-          case Some(col) =>
-            ColMatch(col)
-          case None => throw new Exception("none found")
-        }
-    }
-  }
-
-  def findMirror(grid: ArrayBuffer[ArrayBuffer[Char]], tolerance: Int = 0): Result = {
-    val fromTop: Option[Int] = 0.until(grid.size - 1).find { row =>
-      mirrorAtRow(grid, row, tolerance)
-    }
-    fromTop match {
-      case Some(row) =>
-        RowMatch(row)
-      case None =>
-        0.until(grid.head.size - 1).find { col =>
-          mirrorAtCol(grid, col, tolerance)
         } match {
           case Some(col) =>
             ColMatch(col)
@@ -79,7 +79,7 @@ object Day13 {
       col0 -= 1
       col1 += 1
     }
-    diffs == tolerance
+    true
   }
 
   def mirrorAtRow(grid: ArrayBuffer[ArrayBuffer[Char]], row: Int, tolerance: Int): Boolean = {
@@ -99,7 +99,7 @@ object Day13 {
       row0 -= 1
       row1 += 1
     }
-    diffs == tolerance
+    true
   }
 
 }
