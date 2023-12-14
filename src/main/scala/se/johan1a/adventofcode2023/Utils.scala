@@ -1,6 +1,7 @@
 package se.johan1a.adventofcode2023
 
 import scala.collection.mutable.ArrayBuffer
+import scala.util.{Try, Failure, Success}
 
 object Utils {
 
@@ -140,6 +141,13 @@ object Utils {
 
   def get(grid: ArrayBuffer[ArrayBuffer[Char]], pos: Vec2) = {
     grid(pos.y.toInt)(pos.x.toInt)
+  }
+
+  def get2(grid: ArrayBuffer[ArrayBuffer[Char]], pos: Vec2): Option[Char] = {
+    Try(grid(pos.y.toInt)(pos.x.toInt)) match {
+      case Success(p) => Some(p)
+      case Failure(e) => None
+    }
   }
 
   def printGrid(grid: ArrayBuffer[ArrayBuffer[Char]]) = {

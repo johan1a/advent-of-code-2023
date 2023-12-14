@@ -11,7 +11,7 @@ object Day09 {
   }
 
   def getEndValue(numbers: Seq[Long]): Long = {
-    extrapolate(numbers).foldLeft(0L)((lastDiff,currentRow) => currentRow.last + lastDiff)
+    extrapolate(numbers).foldLeft(0L)((lastDiff, currentRow) => currentRow.last + lastDiff)
   }
 
   def extrapolate(numbers: Seq[Long]): Seq[Seq[Long]] = {
