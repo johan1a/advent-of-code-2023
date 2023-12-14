@@ -6,13 +6,12 @@ import scala.collection.mutable.ArrayBuffer
 object Day14 {
 
   def part1(input: Seq[String]): Int = {
-    val (rocks0, statics) = parse(input)
+    val (rocks, statics) = parse(input)
     val grid = makeGrid(input)
-    var rocks = rocks0
 
-    rocks = spin(grid, rocks, statics, Vec2(0, 1), rr => rr.sortBy(r => (r.x, r.y)))
+    val changedRocks = spin(grid, rocks, statics, Vec2(0, 1), rr => rr.sortBy(r => (r.x, r.y)))
 
-    rocks.map(r => input.size - r.y).sum.toInt
+    score(grid, changedRocks)
   }
 
   def part2(input: Seq[String]): Int = {
@@ -20,77 +19,46 @@ object Day14 {
     val grid = makeGrid(input)
 
     val n = 1000000000
-    val (rocks0, repStart, duplicate) = spinN(grid, rocks, statics, n)
-    val period = duplicate - repStart.get
-    // println(s"repStart $repStart.get duplicate: $duplicate period $period")
+    val (rocks0, scores, repStart, period) = spinN(grid, rocks, statics, n)
 
-    val grid1 = makeGrid(input)
-    val (rocks1, _, i) = spinN(grid1, rocks, statics, repStart.get + (n - repStart.get) % period)
-    // println(s"i after: $i")
+    val finalIndex = repStart + (n - repStart) % period
 
-    // println("\ngrid")
-    // printGrid(grid)
-    // println("\ngrid1")
-    // printGrid(grid1)
-
-    rocks1.map(r => input.size - r.y).sum.toInt
+    scores(finalIndex)
   }
+
+  def score(
+      grid: ArrayBuffer[ArrayBuffer[Char]],
+      rocks: Seq[Vec2]
+  ) = rocks.map(r => grid.head.size - r.y).sum.toInt
 
   def spinN(
       grid: ArrayBuffer[ArrayBuffer[Char]],
       rocks0: Seq[Vec2],
       statics: Seq[Vec2],
       n: Int
-  ): (Seq[Vec2], Option[Int], Int) = {
+  ): (Seq[Vec2], Map[Int, Int], Int, Int) = {
     var seen = Map[Seq[Vec2], Int]()
+    var scores = Map[Int, Int]()
     var rocks = rocks0
-    val nbrRocks = rocks.size
-
-    // println(s"\n0")
-    // printGrid(grid)
-
     var i = 0
     while (i < n && !seen.contains(rocks)) {
-      // if (i % 100 == 0) {
-      println(i)
-      // }
-
       seen = seen + (rocks -> i)
 
       // north
       rocks = spin(grid, rocks, statics, Vec2(0, 1), rr => rr.sortBy(r => (r.x, r.y)))
-      // println(s"\nafter north")
-      // printGrid(grid)
-
-      assert(rocks.size == nbrRocks)
-
-      // println("start west")
       // west
       rocks = spin(grid, rocks, statics, Vec2(1, 0), rr => rr.sortBy(r => (-r.y, r.x)))
-      // println(s"\nafter west")
-      // printGrid(grid)
-
       // south
       rocks = spin(grid, rocks, statics, Vec2(0, -1), rr => rr.sortBy(r => (r.x, -r.y)))
-      // println(s"\nafter south")
-      // printGrid(grid)
-
       // east
       rocks = spin(grid, rocks, statics, Vec2(-1, 0), rr => rr.sortBy(r => (r.y, -r.x)))
-      // println(s"\nafter east")
-      // printGrid(grid)
 
       i += 1
-      // println(s"\n$i")
-      // printGrid(grid)
-      // val score = rocks.map(r => grid.size - r.y).sum.toInt
-      // println(s"current score: $score i: $i")
+      scores = scores + (i -> score(grid, rocks))
     }
 
-    val seenAt = seen.get(rocks)
-
-    // println(s"\nseen size : ${seen.size} seen at: $seenAt")
-    (rocks, seenAt, i)
+    val seenAt = seen(rocks)
+    (rocks, scores, seenAt, i - seenAt)
   }
 
   def spin(
@@ -102,23 +70,10 @@ object Day14 {
   ) = {
     val rocks = sort(rocks0)
     val statics = sort(statics0)
-
-    // west
-    val debug = false && downDir == Vec2(1, 0)
-    if (debug) {
-      // println(s"rocks: $rocks")
-    }
-
     var newRocks = Seq[Vec2]()
-
     var s = 0
     var nextStatic = statics(s)
     var prevPos: Option[Vec2] = None
-
-    // if (debug) {
-    //   // println("")
-    //   // printGrid(grid)
-    // }
 
     rocks.foreach { r =>
       val top = getTop(grid, r, downDir)
@@ -140,10 +95,6 @@ object Day14 {
       if (blockingList.nonEmpty) {
 
         val nextFreeSpot = add(blockingList.last, downDir)
-        if (debug) {
-          // println(s"pos: $r, static: $nextStatic, blocking: ${blockingList.last}, nextFreeSpot: $nextFreeSpot")
-        }
-
         if (inRange(grid, nextFreeSpot)) {
           grid(r.y.toInt)(r.x.toInt) = '.'
           grid(nextFreeSpot.y.toInt)(nextFreeSpot.x.toInt) = 'O'
@@ -157,17 +108,9 @@ object Day14 {
           }
         }
       } else {
-        if (debug) {
-          // println(s"empty blocklist pos: $r top: $top")
-        }
         newRocks = newRocks :+ r
         prevPos = Some(r)
       }
-      // if (debug) {
-      //   // println("")
-      //   // printGrid(grid)
-      //   // scala.io.StdIn.readLine()
-      // }
     }
 
     newRocks
