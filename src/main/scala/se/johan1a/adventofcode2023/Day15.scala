@@ -45,7 +45,6 @@ object Day15 {
     }
   }
 
-
   sealed trait Instruction
   case class Set(label: String, n: Int) extends Instruction
   case class Remove(label: String) extends Instruction
