@@ -5,7 +5,16 @@ import scala.util.{Try, Failure, Success}
 
 object Utils {
 
-  case class Vec2(x: Long, y: Long)
+  case class Vec2(x: Long, y: Long) {
+    def leftOf(other: Vec2): Boolean = y == other.y && x < other.x
+    def rightOf(other: Vec2): Boolean = y == other.y && x > other.x
+    def above(other: Vec2): Boolean = x == other.x && y < other.y
+    def below(other: Vec2): Boolean = x == other.x && y > other.y
+
+    def +(other: Vec2) = add(this, other)
+    def -(other: Vec2) = sub(this, other)
+  }
+
   case class Vec3(x: Long, y: Long, z: Long)
 
   def add(a: Vec2, b: Vec2): Vec2 = Vec2(a.x + b.x, a.y + b.y)
