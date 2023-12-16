@@ -5,6 +5,8 @@ import scala.util.{Try, Failure, Success}
 
 object Utils {
 
+  type Grid = ArrayBuffer[ArrayBuffer[Char]]
+
   case class Vec2(x: Long, y: Long) {
     def leftOf(other: Vec2): Boolean = y == other.y && x < other.x
     def rightOf(other: Vec2): Boolean = y == other.y && x > other.x
@@ -80,9 +82,9 @@ object Utils {
     groups
   }
 
-  def inRange(grid: ArrayBuffer[ArrayBuffer[Char]], pos: Vec2): Boolean = inRange(pos, Vec2(0, 0), getMax(grid))
+  def inRange(grid: Grid, pos: Vec2): Boolean = inRange(pos, Vec2(0, 0), getMax(grid))
 
-  def inRange(grid: ArrayBuffer[ArrayBuffer[Char]], row: Int, col: Int): Boolean =
+  def inRange(grid: Grid, row: Int, col: Int): Boolean =
     inRange(Vec2(col, row), Vec2(0, 0), getMax(grid))
 
   def inRange(pos: Vec2, min: Vec2, max: Vec2): Boolean =
@@ -91,7 +93,7 @@ object Utils {
   def inRange(pos: Vec3, min: Vec3, max: Vec3): Boolean =
     pos.x >= min.x && pos.x < max.x && pos.y >= min.y && pos.y < max.y && pos.z >= min.z && pos.z < max.z
 
-  def positions(grid: ArrayBuffer[ArrayBuffer[Char]]): Seq[Vec2] =
+  def positions(grid: Grid): Seq[Vec2] =
     grid.indices.flatMap { y =>
       grid.head.indices.map { x =>
         Vec2(x, y)
@@ -144,31 +146,31 @@ object Utils {
       .filter(inRange(_, min, max))
   }
 
-  def makeGrid(lines: Seq[String]): ArrayBuffer[ArrayBuffer[Char]] = {
+  def makeGrid(lines: Seq[String]): Grid = {
     new ArrayBuffer().appendAll(lines.map(l => new ArrayBuffer().appendAll(l)))
   }
 
-  def get(grid: ArrayBuffer[ArrayBuffer[Char]], pos: Vec2) = {
+  def get(grid: Grid, pos: Vec2) = {
     grid(pos.y.toInt)(pos.x.toInt)
   }
 
-  def get2(grid: ArrayBuffer[ArrayBuffer[Char]], pos: Vec2): Option[Char] = {
+  def get2(grid: Grid, pos: Vec2): Option[Char] = {
     Try(grid(pos.y.toInt)(pos.x.toInt)) match {
       case Success(p) => Some(p)
       case Failure(e) => None
     }
   }
 
-  def printGrid(grid: ArrayBuffer[ArrayBuffer[Char]]) = {
+  def printGrid(grid: Grid) = {
     grid.foreach { line =>
       println(line.mkString(""))
     }
   }
 
-  def getMax(grid: ArrayBuffer[ArrayBuffer[Char]]): Vec2 =
+  def getMax(grid: Grid): Vec2 =
     Vec2(grid.head.size, grid.size)
 
-  def allPositions(grid: ArrayBuffer[ArrayBuffer[Char]]): Seq[Vec2] = {
+  def allPositions(grid: Grid): Seq[Vec2] = {
     0.until(grid.size).flatMap { y =>
       0.until(grid.head.size).map { x =>
         Vec2(x, y)
@@ -177,7 +179,7 @@ object Utils {
   }
 
   def straightPathsFromOutside(
-      grid: ArrayBuffer[ArrayBuffer[Char]]
+      grid: Grid
   ): Seq[Seq[Seq[Vec2]]] = {
     val ySize = grid.size
     val xSize = grid.head.size
@@ -219,7 +221,7 @@ object Utils {
   }
 
   def straightPathsFromPos(
-      grid: ArrayBuffer[ArrayBuffer[Char]],
+      grid: Grid,
       pos: Vec2
   ): Seq[Seq[Vec2]] = {
     val ySize = grid.size
