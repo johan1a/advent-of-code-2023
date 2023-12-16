@@ -23,7 +23,7 @@ object Day16 {
   }
 
   def simulate(grid: ArrayBuffer[ArrayBuffer[Char]], startArrow: Arrow): Int = {
-    var nbrEnergized = Set[Vec2]()
+    var energized = Set[Vec2]()
     var arrows = Set[Arrow](startArrow)
     var seen = Set[Arrow]()
 
@@ -33,14 +33,13 @@ object Day16 {
         .map(moveArrow(grid, _))
         .flatMap { arrows =>
           arrows.map { arrow =>
-            nbrEnergized = nbrEnergized + arrow.pos
+            energized = energized + arrow.pos
             arrow
           }
         }
         .filterNot(seen.contains)
     }
-
-    nbrEnergized.size
+    energized.size
   }
 
   def moveArrow(grid: ArrayBuffer[ArrayBuffer[Char]], arrow: Arrow): Seq[Arrow] = {
@@ -71,6 +70,5 @@ object Day16 {
     } else {
       Seq.empty
     }
-
   }
 }
