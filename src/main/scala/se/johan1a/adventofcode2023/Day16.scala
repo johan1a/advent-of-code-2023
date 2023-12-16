@@ -9,8 +9,37 @@ object Day16 {
 
   def part1(input: Seq[String]): Int = {
     val grid = makeGrid(input)
-    var nbrEnergized = Set[Vec2](Vec2(0,0))
-    var arrows = Set[Arrow](Arrow(Vec2(-1, 0), "R"))
+    simulate(grid, Arrow(Vec2(-1, 0), "R"))
+  }
+
+  def part2(input: Seq[String]): Int = {
+    val grid = makeGrid(input)
+    val startPositions = 0.until(grid.size).flatMap { y =>
+      Seq(Arrow(Vec2(-1, y), "R"), Arrow(Vec2(grid.head.size, y), "L"))
+    } ++ 0.until(grid.head.size).flatMap { x =>
+      Seq(Arrow(Vec2(x, -1), "D"), Arrow(Vec2(x, grid.size), "U"))
+    }
+    val n = startPositions.size
+    var i = 0
+    var max = -1
+    startPositions
+      .map(p => {
+        println(s"simulation $i / $n, current max: $max")
+        i += 1
+        val result = simulate(grid, p)
+        if (result > max) {
+          println(s"new max: $result")
+          max = result
+        }
+        result
+      })
+    println(s"final max: $max")
+    max
+  }
+
+  def simulate(grid: ArrayBuffer[ArrayBuffer[Char]], startArrow: Arrow): Int = {
+    var nbrEnergized = Set[Vec2]()
+    var arrows = Set[Arrow](startArrow)
 
     var seen = Set[Set[Arrow]]()
     var i = 0
@@ -24,13 +53,9 @@ object Day16 {
       }
       i += 1
     }
-    println(i)
+    println(s"iterations: $i, result: ${nbrEnergized.size}")
 
     nbrEnergized.size
-  }
-
-  def part2(input: Seq[String]): Int = {
-    -1
   }
 
   implicit class ComparableDirection(a: Vec2) {
