@@ -19,41 +19,36 @@ object Day16 {
     } ++ 0.until(grid.head.size).flatMap { x =>
       Seq(Arrow(Vec2(x, -1), "D"), Arrow(Vec2(x, grid.size), "U"))
     }
-    val n = startPositions.size
     var i = 0
     var max = -1
     startPositions
       .map(p => {
-        println(s"simulation $i / $n, current max: $max")
         i += 1
         val result = simulate(grid, p)
         if (result > max) {
-          println(s"new max: $result")
           max = result
         }
         result
       })
-    println(s"final max: $max")
     max
   }
 
   def simulate(grid: ArrayBuffer[ArrayBuffer[Char]], startArrow: Arrow): Int = {
     var nbrEnergized = Set[Vec2]()
     var arrows = Set[Arrow](startArrow)
+    var seen = Set[Arrow]()
 
-    var seen = Set[Set[Arrow]]()
     var i = 0
-    while (arrows.nonEmpty && !seen.contains(arrows)) {
-      seen = seen + arrows
+    while (arrows.nonEmpty) {
+      seen = seen ++ arrows
       arrows = arrows.map(a => moveArrow(grid, a)).flatMap { arrows =>
         arrows.map { arrow =>
           nbrEnergized = nbrEnergized + arrow.pos
           arrow
         }
-      }
+      }.filterNot(seen.contains)
       i += 1
     }
-    println(s"iterations: $i, result: ${nbrEnergized.size}")
 
     nbrEnergized.size
   }
