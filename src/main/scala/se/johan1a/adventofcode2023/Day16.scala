@@ -17,7 +17,7 @@ object Day16 {
 
   def part1(input: Seq[String]): Int = {
     val grid = makeGrid(input)
-    getEnergizedTiles(grid, Set(Arrow(Vec2(-1, 0), "R")), mutable.Set(), Set.empty).size
+    getEnergizedTiles(grid, Set(Arrow(Vec2(-1, 0), "R"))).size
   }
 
   def part2(input: Seq[String]): Int = {
@@ -31,7 +31,7 @@ object Day16 {
       .result(
         Future.sequence(startPositions.map(a => {
           Future {
-            getEnergizedTiles(grid, Set(a), mutable.Set(), Set.empty).size
+            getEnergizedTiles(grid, Set(a)).size
           }
         })),
         Duration.Inf
@@ -43,8 +43,8 @@ object Day16 {
   def getEnergizedTiles(
       grid: ArrayBuffer[ArrayBuffer[Char]],
       arrows: Set[Arrow],
-      seen: mutable.Set[Arrow],
-      energized: Set[Vec2]
+      seen: mutable.Set[Arrow] = mutable.Set(),
+      energized: Set[Vec2] = Set.empty
   ): Set[Vec2] = {
     if (arrows.isEmpty) {
       energized
