@@ -2,14 +2,22 @@ package se.johan1a.adventofcode2023
 
 import se.johan1a.adventofcode2023.Utils._
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable
+import scala.annotation.tailrec
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Duration
+import scala.concurrent.Await
 
 object Day16 {
+
+  implicit val ec: ExecutionContext = ExecutionContext.global
 
   case class Arrow(pos: Vec2, dir: String)
 
   def part1(input: Seq[String]): Int = {
     val grid = makeGrid(input)
-    simulate(grid, Arrow(Vec2(-1, 0), "R"))
+    getEnergizedTiles(grid, Set(Arrow(Vec2(-1, 0), "R")), mutable.Set(), Set.empty).size
   }
 
   def part2(input: Seq[String]): Int = {
@@ -19,27 +27,42 @@ object Day16 {
     } ++ grid.head.indices.flatMap { x =>
       Seq(Arrow(Vec2(x, -1), "D"), Arrow(Vec2(x, grid.size), "U"))
     }
-    startPositions.map(simulate(grid, _)).max
+    Await
+      .result(
+        Future.sequence(startPositions.map(a => {
+          Future {
+            getEnergizedTiles(grid, Set(a), mutable.Set(), Set.empty).size
+          }
+        })),
+        Duration.Inf
+      )
+      .max
   }
 
-  def simulate(grid: ArrayBuffer[ArrayBuffer[Char]], startArrow: Arrow): Int = {
-    var energized = Set[Vec2]()
-    var arrows = Set[Arrow](startArrow)
-    var seen = Set[Arrow]()
+  @tailrec
+  def getEnergizedTiles(
+      grid: ArrayBuffer[ArrayBuffer[Char]],
+      arrows: Set[Arrow],
+      seen: mutable.Set[Arrow],
+      energized: Set[Vec2]
+  ): Set[Vec2] = {
+    if (arrows.isEmpty) {
+      energized
+    } else {
+      seen.addAll(arrows)
+      var newEnergized = energized
 
-    while (arrows.nonEmpty) {
-      seen = seen ++ arrows
-      arrows = arrows
+      val newArrows = arrows
         .map(moveArrow(grid, _))
         .flatMap { arrows =>
           arrows.map { arrow =>
-            energized = energized + arrow.pos
+            newEnergized = newEnergized + arrow.pos
             arrow
           }
         }
         .filterNot(seen.contains)
+      getEnergizedTiles(grid, newArrows, seen, newEnergized)
     }
-    energized.size
   }
 
   def moveArrow(grid: ArrayBuffer[ArrayBuffer[Char]], arrow: Arrow): Seq[Arrow] = {
