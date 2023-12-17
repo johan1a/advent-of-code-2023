@@ -10,6 +10,7 @@ object Day17 {
     val target = Vec2(grid.head.size - 1, grid.size - 1)
     search(grid, Vec2(0, 0), target, 0, 3)
   }
+
   def part2(input: Seq[String]): Int = {
     val grid = makeGrid(input)
     val target = Vec2(grid.head.size - 1, grid.size - 1)
