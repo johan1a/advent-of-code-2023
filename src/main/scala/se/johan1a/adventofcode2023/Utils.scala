@@ -8,10 +8,10 @@ object Utils {
   type Grid = ArrayBuffer[ArrayBuffer[Char]]
 
   case class Vec2(x: Long, y: Long) {
-    def leftOf(other: Vec2): Boolean = y == other.y && x < other.x
-    def rightOf(other: Vec2): Boolean = y == other.y && x > other.x
-    def above(other: Vec2): Boolean = x == other.x && y < other.y
-    def below(other: Vec2): Boolean = x == other.x && y > other.y
+    def leftOf(other: Vec2): Boolean = x < other.x
+    def rightOf(other: Vec2): Boolean = x > other.x
+    def above(other: Vec2): Boolean = y < other.y
+    def below(other: Vec2): Boolean = y > other.y
 
     def +(other: Vec2) = add(this, other)
     def -(other: Vec2) = sub(this, other)
@@ -167,8 +167,9 @@ object Utils {
     }
   }
 
-  def getMax(grid: Grid): Vec2 =
-    Vec2(grid.head.size, grid.size)
+  def getMax(grid: Grid): Vec2 = Vec2(grid.head.size, grid.size)
+
+  def bottomRight(grid: Grid): Vec2 = Vec2(grid.head.size - 1, grid.size - 1)
 
   def allPositions(grid: Grid): Seq[Vec2] = {
     0.until(grid.size).flatMap { y =>
@@ -269,5 +270,42 @@ object Utils {
         (seq(i), seq(j))
       }
     }
+
+  def rotate(grid: Grid): Grid = {
+    if (grid.size != grid.head.size) {
+      throw new Exception("Sides must be equal")
+    }
+    val newGrid = ArrayBuffer.fill(grid.size)(ArrayBuffer.fill(grid.head.size)('?'))
+    val width = grid.size
+    0.to(width / 2).foreach { d =>
+      0.until(width - 2 * d).foreach { i =>
+        // top -> right
+        newGrid(d + i)(newGrid.size - 1 - d) = grid(d)(d + i)
+
+        // right -> bottom
+        newGrid(newGrid.size - 1 - d)(newGrid.size - 1 - i - d) = grid(d + i)(newGrid.size - 1 - d)
+
+        // bottom -> left
+        newGrid(grid.size - 1 - d - i)(d) = grid(grid.size - 1 - d)(grid.size - 1 - d - i)
+
+        // left -> top
+        newGrid(d)(d + i) = grid(grid.size - 1 - i - d)(d)
+      }
+    }
+    newGrid
+  }
+
+  // flip left - right
+  def flip(grid: Grid): Grid = {
+    val newData = ArrayBuffer.fill(grid.size)(ArrayBuffer.fill(grid.size)('?'))
+
+    grid.indices.map { y =>
+      grid.head.indices.map { x =>
+        newData(y)(newData.size - 1 - x) = grid(y)(x)
+      }
+    }
+
+    newData
+  }
 
 }

@@ -7,17 +7,17 @@ object Day17 {
 
   def part1(input: Seq[String]): Int = {
     val grid = makeGrid(input)
-    val target = Vec2(grid.head.size - 1, grid.size - 1)
-    search(grid, Vec2(0, 0), target, 0, 3)
+    search(grid, 0, 3)
   }
 
   def part2(input: Seq[String]): Int = {
     val grid = makeGrid(input)
-    val target = Vec2(grid.head.size - 1, grid.size - 1)
-    search(grid, Vec2(0, 0), target, 4, 10)
+    search(grid, 4, 10)
   }
 
-  def search(grid: Grid, start: Vec2, target: Vec2, minNbrStraight: Int, maxNbrStraight: Int): Int = {
+  def search(grid: Grid, minNbrStraight: Int, maxNbrStraight: Int): Int = {
+    val start = Vec2(0, 0)
+    val target = bottomRight(grid)
     val pq = new PriorityQueue[(Vec2, String, Int, Int)]()(Ordering.by(x => (-x._4)))
     pq.addOne((start, "?", 0, 0))
     var seen = Set[(Vec2, String, Int)]()
