@@ -6,9 +6,13 @@ import scala.collection.mutable.ArrayBuffer
 
 object Day17 {
 
+  var best = Int.MaxValue
+
   def part1(input: Seq[String]): Int = {
     val grid = makeGrid(input)
-    search(grid, Vec2(0, 0), Vec2(grid.size - 1, grid.head.size - 1))
+    best = Int.MaxValue
+    cache = Map[(Seq[Vec2], Int), Int]()
+    search2(grid, Seq((Vec2(0, 0), "?")), 0, Vec2(grid.size - 1, grid.head.size - 1))
   }
 
   def search(grid: Grid, start: Vec2, end: Vec2): Int = {
@@ -34,10 +38,113 @@ object Day17 {
     println("final")
     printPath(grid, prev, end)
     println()
-    println(prev(Vec2(5, 1)))
-    println(prev(Vec2(4, 1)))
 
     dists(end)
+  }
+
+  var cache = Map[(Seq[Vec2], Int), Int]()
+
+  def search2(grid: Grid, path: Seq[(Vec2, String)], cost: Int, target: Vec2): Int = {
+    val (pos, dir) = path.last
+
+    if (cache.size > 0 && cache.size % 10000 == 0) {
+      println(s"cache size: ${cache.size}")
+    }
+
+    val key = (path.takeRight(4).map(_._1), cost)
+    if (cache.contains(key)) {
+      cache(key)
+    } else {
+      val result = if (cost > best) {
+        Int.MaxValue
+      } else if (pos == target) {
+        if (cost < best) {
+          best = cost
+        }
+        cost
+      } else {
+        val neighbors = getNeighbors2(grid, path)
+
+        val results: Seq[Int] = neighbors
+          .sortBy { case (neighbor, dir) =>
+            val dx = get(grid, neighbor).toString.toInt
+            dx + manhattan(neighbor, target)
+          }
+          .map { case (neighbor, dir) =>
+            search2(grid, path :+ ((neighbor, dir)), cost + get(grid, neighbor).toString.toInt, target)
+          }
+          .filterNot(_ == Int.MaxValue)
+
+        results.sorted.headOption.getOrElse(Int.MaxValue)
+      }
+
+      cache = cache.updated(key, result)
+      result
+    }
+  }
+
+  def getNeighbors2(grid: Grid, path: Seq[(Vec2, String)]): Seq[(Vec2, String)] = {
+    val prevDirs = path.takeRight(3).map(_._2)
+    val dir = prevDirs.last
+    val pos = path.last._1
+
+    val possibleDirs = dir match {
+      case ">" =>
+        if (prevDirs.size == 3 && prevDirs.forall(_ == ">")) {
+          Seq("^", "v")
+        } else {
+          Seq("^", "v", ">")
+        }
+      case "<" =>
+        if (prevDirs.size == 3 && prevDirs.forall(_ == "<")) {
+          Seq("^", "v")
+        } else {
+          Seq("^", "v", "<")
+        }
+      case "^" =>
+        if (prevDirs.size == 3 && prevDirs.forall(_ == "^")) {
+          Seq("<", ">")
+        } else {
+          Seq("<", ">", "^")
+        }
+      case "v" =>
+        if (prevDirs.size == 3 && prevDirs.forall(_ == "v")) {
+          Seq("<", ">")
+        } else {
+          Seq("<", ">", "v")
+        }
+      case "?" =>
+        Seq(">", "v")
+    }
+
+    val r = possibleDirs
+      .map { dir =>
+        walk(pos, dir)
+      }
+      .filterNot(p => path.map(_._1).contains(p._1))
+      .filter { case (p, d) => inRange(grid, p) }
+
+    // println(s"prevdirs: $prevDirs $pos , neighbors: $r")
+    // scala.io.StdIn.readLine()
+
+    r
+  }
+
+  def printPath2(grid: Grid, path: Seq[(Vec2, String)]) = {
+    val gridCopy = ArrayBuffer.fill(grid.size)(
+      ArrayBuffer.fill(grid.head.size)('?')
+    )
+    grid.indices.foreach { y =>
+      grid.indices.foreach { x =>
+        gridCopy(y)(x) = grid(y)(x)
+      }
+    }
+
+    path.foreach { case (pos, dir) =>
+      gridCopy(pos.y.toInt)(pos.x.toInt) = dir.charAt(0)
+    }
+    printGrid(gridCopy)
+
   }
 
   def printPath(grid: Grid, prev: Map[Vec2, (Vec2, String)], pos: Vec2) = {
