@@ -13,31 +13,35 @@ object Day17 {
 
   def search(grid: Grid, start: Vec2, end: Vec2): Int = {
     var prev = Map[Vec2, (Vec2, String)]()
-    var dists = Map[Vec2, Int]()
-    val pq = new PriorityQueue[(Vec2, Int)]()(Ordering.by(x => -x._2))
-    pq.addOne((start, 0))
+    val pq = new PriorityQueue[(Vec2, String, Int, Int)]()(Ordering.by(x => (-x._4)))
+    pq.addOne((start, "?", 0, 0))
+    var seen = Set[(Vec2, String, Int)]()
+    var best = Int.MaxValue
     while (pq.nonEmpty) {
-      val (curr, dist) = pq.dequeue()
+      val (curr, currDir, nbrStraight, dist) = pq.dequeue()
 
-      getNeighbors(grid, prev, curr).foreach { case (neighbor, dir) =>
-        val dx = grid(neighbor.y.toInt)(neighbor.x.toInt).toString.toInt
-        val d = dist + dx
+      val state = (curr, currDir, nbrStraight)
 
-        if (!dists.contains(neighbor) || d < dists(neighbor)) {
-          dists = dists.updated(neighbor, d)
+      if (curr == end) {
+        if (dist < best) {
+          best = dist
+        }
+      }
+
+      if (!seen.contains(state)) {
+        seen = seen + state
+
+        getNeighbors(grid, currDir, nbrStraight, curr).foreach { case (neighbor, dir, nbrStraight) =>
+          val dx = grid(neighbor.y.toInt)(neighbor.x.toInt).toString.toInt
+          val d = dist + dx
+
           prev = prev.updated(neighbor, (curr, dir))
-          pq.addOne((neighbor, d))
+          pq.addOne((neighbor, dir, nbrStraight, d))
         }
       }
     }
 
-    println("final")
-    printPath(grid, prev, end)
-    println()
-    println(prev(Vec2(5, 1)))
-    println(prev(Vec2(4, 1)))
-
-    dists(end)
+    best
   }
 
   def printPath(grid: Grid, prev: Map[Vec2, (Vec2, String)], pos: Vec2) = {
@@ -66,35 +70,28 @@ object Day17 {
 
   }
 
-  def getNeighbors(grid: Grid, prev: Map[Vec2, (Vec2, String)], pos: Vec2) = {
-    val prev2 = prev.get(pos)
-    val prev1 = prev2.flatMap(p => prev.get(p._1))
-    val prev0 = prev1.flatMap(p => prev.get(p._1))
-
-    val prevDirs = Seq(prev0, prev1, prev2).collect { case Some(p) => p }.map(_._2)
-    val dir = prev.get(pos).map(_._2).getOrElse("?")
-
+  def getNeighbors(grid: Grid, dir: String, nbrStraight: Int, pos: Vec2) = {
     val possibleDirs = dir match {
       case ">" =>
-        if (prevDirs.size == 3 && prevDirs.forall(_ == ">")) {
+        if (nbrStraight == 3 && dir == ">") {
           Seq("^", "v")
         } else {
           Seq("^", "v", ">")
         }
       case "<" =>
-        if (prevDirs.size == 3 && prevDirs.forall(_ == "<")) {
+        if (nbrStraight == 3 && dir == "<") {
           Seq("^", "v")
         } else {
           Seq("^", "v", "<")
         }
       case "^" =>
-        if (prevDirs.size == 3 && prevDirs.forall(_ == "^")) {
+        if (nbrStraight == 3 && dir == "^") {
           Seq("<", ">")
         } else {
           Seq("<", ">", "^")
         }
       case "v" =>
-        if (prevDirs.size == 3 && prevDirs.forall(_ == "v")) {
+        if (nbrStraight == 3 && dir == "v") {
           Seq("<", ">")
         } else {
           Seq("<", ">", "v")
@@ -103,13 +100,20 @@ object Day17 {
         Seq(">", "v")
     }
 
-    val r = possibleDirs
+    possibleDirs
       .map { dir =>
         walk(pos, dir)
       }
       .filter { case (p, d) => inRange(grid, p) }
+      .map { case (p, d) =>
+        val newNbrStraight = if (d == dir) {
+          nbrStraight + 1
+        } else {
+          1
+        }
 
-    r
+        (p, d, newNbrStraight)
+      }
   }
 
   def walk(pos: Vec2, dir: String): (Vec2, String) = {
