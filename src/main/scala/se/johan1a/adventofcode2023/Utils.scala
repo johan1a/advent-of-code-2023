@@ -27,16 +27,16 @@ object Utils {
   def sub(a: Vec3, b: Vec3): Vec3 = Vec3(a.x - b.x, a.y - b.y, a.z - b.z)
   def sign(vec: Vec3): Vec3 = Vec3(vec.x.sign, vec.y.sign, vec.z.sign)
 
-  def move(pos: Vec2, dir: String): Vec2 = {
+  def move(pos: Vec2, dir: String, n: Int = 1): Vec2 = {
     dir match {
       case "U" =>
-        Vec2(pos.x, pos.y - 1)
+        Vec2(pos.x, pos.y - n)
       case "D" =>
-        Vec2(pos.x, pos.y + 1)
+        Vec2(pos.x, pos.y + n)
       case "L" =>
-        Vec2(pos.x - 1, pos.y)
+        Vec2(pos.x - n, pos.y)
       case "R" =>
-        Vec2(pos.x + 1, pos.y)
+        Vec2(pos.x + n, pos.y)
     }
   }
 
