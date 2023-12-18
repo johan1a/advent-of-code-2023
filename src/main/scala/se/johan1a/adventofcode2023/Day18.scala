@@ -28,6 +28,8 @@ object Day18 {
         pos = b
         edgeSize += n
       }
+
+    // Shoelace formula to calculate area
     var sum = 0L
     var j = vertices.size - 1
     0.until(vertices.size).foreach { i =>
@@ -36,14 +38,16 @@ object Day18 {
       sum = sum + (a.x + b.x) * (a.y - b.y)
       j = i
     }
-    val total = if (sum < 0) {
-      -sum
-    } else {
-      sum
-    }
-    println(s"sum $sum total $total")
-    val areaShoelace = total / 2
-    areaShoelace + edgeSize / 2 + 1
+    val area = Math.abs(Math.abs(sum) / 2)
+
+    // Pick's theorem:
+    // A = I + E/2 - 1
+    // I = A - E/2 + 1
+
+    // ans = E + I
+    // ans = E + A - E/2 + 1
+    // ans = A + E/2 + 1
+    area + edgeSize / 2 + 1
   }
 
   def toDir(str: String) = {
