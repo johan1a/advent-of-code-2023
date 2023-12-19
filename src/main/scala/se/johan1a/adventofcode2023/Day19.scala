@@ -22,7 +22,7 @@ object Day19 {
     parts.map(p => isAccepted(workflows, p, "in")).sum
   }
 
-  def part2(input: Seq[String], maxLimit: Int = 4000, debug: Boolean = false): Long = {
+  def part2(input: Seq[String], maxLimit: Int = 4000): Long = {
     val (workflows, _) = parse(input)
     val parts = findMatchingIntervals(
       workflows,
