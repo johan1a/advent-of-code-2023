@@ -1,107 +1,61 @@
 package se.johan1a.adventofcode2023
 
 import se.johan1a.adventofcode2023.Utils._
+import scala.annotation.tailrec
 
 object Day19 {
 
-  case class Condition(category: String, op: String, n: Int)
-  case class Rule(condition: Option[Condition], destination: String)
-  case class Workflow(name: String, rules: Seq[Rule])
+  type Name = String
+  type Category = String
 
-  case class Part(var values: Map[String, Long])
-  case class Part2(var values: Map[String, (Long, Long)])
+  case class Condition(category: Category, op: String, n: Int)
+  case class Rule(condition: Option[Condition], destination: Name)
+  case class Workflow(name: Name, rules: Seq[Rule])
+
+  case class Part(values: Map[Category, Long])
+
+  case class Interval(min: Long, max: Long)
+  case class PartIntervals(values: Map[Category, Interval])
 
   def part1(input: Seq[String]): Long = {
     val (workflows, parts) = parse(input)
-    parts.map(p => check(workflows, p)).sum
+    parts.map(p => isAccepted(workflows, p, "in")).sum
   }
 
   def part2(input: Seq[String], maxLimit: Int = 4000, debug: Boolean = false): Long = {
     val (workflows, _) = parse(input)
-    val parts = check2(
+    val parts = findMatchingIntervals(
       workflows,
-      Part2(Map("x" -> (1L, maxLimit), "m" -> (1L, maxLimit), "a" -> (1, maxLimit), "s" -> (1, maxLimit))),
+      PartIntervals(
+        Map(
+          "x" -> Interval(1, maxLimit),
+          "m" -> Interval(1, maxLimit),
+          "a" -> Interval(1, maxLimit),
+          "s" -> Interval(1, maxLimit)
+        )
+      ),
       "in"
     )
 
     parts.map { part =>
       Seq("x", "m", "a", "s").map { category =>
-        part.values(category)._2 - part.values(category)._1 + 1
+        part.values(category).max - part.values(category).min + 1
       }.product
     }.sum
   }
 
-  def check2(workflows: Seq[Workflow], part0: Part2, curr: String): Seq[Part2] = {
-    curr match {
-      case "A" => Seq(part0)
-      case "R" => Seq.empty
+  @tailrec
+  def isAccepted(workflows: Seq[Workflow], part: Part, destination: String): Long = {
+    destination match {
+      case "R" => 0
+      case "A" => part.values.values.sum
       case _ =>
-        var rules = workflows.find(_.name == curr).get.rules
-        var next = Seq[(Part2, String)]()
-        var partOpt: Option[Part2] = Some(part0)
-        while (rules.nonEmpty && partOpt.isDefined) {
-          val part = partOpt.get
-          val rule = rules.head
-
-          if (matches2(rule, part)) {
-            next = next :+ (part, rule.destination)
-          } else {
-            createSucceeding(part, rule).map { newPart =>
-              next = next :+ (newPart, rule.destination)
-            }
-            partOpt = createFailing(part, rule)
-          }
+        val workflow = workflows.find(_.name == destination).get
+        var rules = workflow.rules
+        while (!matches(rules.head, part)) {
           rules = rules.tail
         }
-        next.flatMap((part, destination) => check2(workflows, part, destination))
-    }
-  }
-
-  def createFailing(part: Part2, rule: Rule): Option[Part2] =
-    rule.condition match {
-      case Some(Condition(category, op, n)) =>
-        val (min, max) = part.values(category)
-        if (op == ">" && max > n) {
-          Some(part.copy(values = part.values.updated(category, (min, n))))
-        } else if (op == "<" && min < n) {
-          Some(part.copy(values = part.values.updated(category, (n, max))))
-        } else {
-          None
-        }
-      case None => None
-    }
-
-  def createSucceeding(part: Part2, rule: Rule): Option[Part2] =
-    rule.condition match {
-      case Some(Condition(category, op, n)) =>
-        val (min, max) = part.values(category)
-        if (op == ">" && max > n) {
-          Some(part.copy(values = part.values.updated(category, (n + 1L, max))))
-        } else if (op == "<" && min < n) {
-          Some(part.copy(values = part.values.updated(category, (min, n - 1L))))
-        } else {
-          None
-        }
-      case None => None
-    }
-
-  def check(workflows: Seq[Workflow], part: Part): Long = {
-    var destination = "in"
-    var prev: Seq[Workflow] = Seq.empty
-    while (destination != "A" && destination != "R") {
-      val workflow = workflows.find(_.name == destination).get
-      var rules = workflow.rules
-      while (!matches(rules.head, part)) {
-        rules = rules.tail
-      }
-      destination = rules.head.destination
-      prev = prev :+ workflow
-    }
-
-    if (destination == "A") {
-      part.values.values.sum
-    } else {
-      0
+        isAccepted(workflows, part, rules.head.destination)
     }
   }
 
@@ -117,13 +71,68 @@ object Day19 {
     }
   }
 
-  def matches2(rule: Rule, part: Part2) = {
+  def findMatchingIntervals(workflows: Seq[Workflow], part: PartIntervals, curr: String): Seq[PartIntervals] =
+    curr match {
+      case "A" => Seq(part)
+      case "R" => Seq.empty
+      case _ =>
+        val workflow = workflows.find(_.name == curr).get
+        val partsToCheck = shrinkIntervals(workflow.rules, part)
+        partsToCheck.flatMap((part, destination) => findMatchingIntervals(workflows, part, destination))
+    }
+
+  @tailrec
+  def shrinkIntervals(
+      rules: Seq[Rule],
+      part: PartIntervals,
+      partsToCheck: Seq[(PartIntervals, Name)] = Seq.empty
+  ): Seq[(PartIntervals, Name)] =
+    rules match {
+      case Nil => partsToCheck
+      case rule +: remainingRules =>
+        var newPartsToCheck = Seq[(PartIntervals, Name)]()
+        var nextPart: Option[PartIntervals] = Some(part)
+        if (intervalMatches(rule, part)) {
+          newPartsToCheck = newPartsToCheck :+ (part, rule.destination)
+        } else {
+          shrinkInterval(part, rule, shouldSucceed = true).map { newPart =>
+            newPartsToCheck = newPartsToCheck :+ (newPart, rule.destination)
+          }
+          nextPart = shrinkInterval(part, rule, shouldSucceed = false)
+        }
+        nextPart match {
+          case None       => partsToCheck ++ newPartsToCheck
+          case Some(part) => shrinkIntervals(remainingRules, part, partsToCheck ++ newPartsToCheck)
+        }
+    }
+
+  def shrinkInterval(part: PartIntervals, rule: Rule, shouldSucceed: Boolean): Option[PartIntervals] =
+    rule.condition match {
+      case None => None
+      case Some(Condition(category, op, n)) =>
+        (part.values(category), op) match {
+          case (Interval(min, max), ">") =>
+            if (shouldSucceed) {
+              Some(part.copy(values = part.values.updated(category, Interval(n + 1L, max))))
+            } else {
+              Some(part.copy(values = part.values.updated(category, Interval(min, n))))
+            }
+          case (Interval(min, max), "<") =>
+            if (shouldSucceed) {
+              Some(part.copy(values = part.values.updated(category, Interval(min, n - 1L))))
+            } else {
+              Some(part.copy(values = part.values.updated(category, Interval(n, max))))
+            }
+        }
+    }
+
+  def intervalMatches(rule: Rule, part: PartIntervals) = {
     rule.condition match {
       case Some(condition) =>
         val value = part.values(condition.category)
         condition.op match {
-          case ">" => value._1 > condition.n
-          case "<" => value._2 < condition.n
+          case ">" => value.min > condition.n
+          case "<" => value.max < condition.n
         }
       case None => true
     }
