@@ -1,5 +1,7 @@
 package se.johan1a.adventofcode2023
 
+import se.johan1a.adventofcode2023.Utils._
+
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 
@@ -31,31 +33,6 @@ object Day08 {
       val instruction = instructions(i)
       val nextPos = nodes((pos, instruction))
       count(instructions, nodes, nextPos, stepsTaken + 1, (i + 1) % instructions.size)
-    }
-  }
-
-  def lcm(nn: Seq[Long]): Long = {
-    var a = nn.head
-    var i = 1
-    while (i < nn.size) {
-      val b = nn(i)
-      a = lcm(a, b)
-      i += 1
-    }
-    a
-  }
-
-  def lcm(a: Long, b: Long): Long = {
-    Math.abs(a * b) / gcd(a, b)
-  }
-
-  def gcd(a: Long, b: Long): Long = {
-    if (a == 0 && b == 0) {
-      0
-    } else if (b == 0) {
-      a
-    } else {
-      gcd(b, a % b)
     }
   }
 

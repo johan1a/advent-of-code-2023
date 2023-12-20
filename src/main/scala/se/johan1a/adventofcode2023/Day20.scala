@@ -1,5 +1,7 @@
 package se.johan1a.adventofcode2023
 
+import se.johan1a.adventofcode2023.Utils._
+
 object Day20 {
 
   sealed trait Pulse
@@ -13,27 +15,9 @@ object Day20 {
   sealed trait Module {
     def name: Name
   }
-  case class Broadcast(name: Name, outputs: Seq[Name]) extends Module {
-    override def toString() = s"""Broadcast(name: "$name", outputs: ${outputs.mkString(",")})"""
-  }
-  case class FlipFlop(name: Name, outputs: Seq[Name], on: Boolean) extends Module {
-    override def toString() = s"""FlipFlop(name: "$name", on: $on, outputs: ${outputs.mkString(",")})"""
-  }
-  case class Conjunction(name: Name, outputs: Seq[Name], lastReceived: Map[Name, Pulse]) extends Module {
-    override def toString() = {
-      //s"""Conjunction(name: "$name", lastReceived: $lastReceived, outputs: ${outputs.mkString(",")})"""
-      s"""Conjunction(name: "$name", ${getBits()})"""
-    }
-
-    def getBits() = {
-      lastReceived.toSeq.sortBy(_._1).map{ case(_, pulse) =>
-        pulse match {
-          case High => 1
-          case Low => 0
-        }
-      }.mkString("")
-    }
-  }
+  case class Broadcast(name: Name, outputs: Seq[Name]) extends Module
+  case class FlipFlop(name: Name, outputs: Seq[Name], on: Boolean) extends Module
+  case class Conjunction(name: Name, outputs: Seq[Name], lastReceived: Map[Name, Pulse]) extends Module
   case class Output(name: Name) extends Module
 
   def part1(input: Seq[String]): Long = {
@@ -43,118 +27,7 @@ object Day20 {
 
   def part2(input: Seq[String], target: String = "rx"): Long = {
     val (inputs, modules) = parse(input)
-    //findInputs(inputs, modules, target)
-    simulate2(inputs, modules)
-    -1
-  }
-
-  var printed= Set[Name]()
-
-  def findInputs(
-      allInputs: Map[Name, Seq[Name]],
-      modules: Map[Name, Module],
-      target: Name,
-      indent: String = ""
-  ): Unit = {
-    if(!printed(target)) {
-      printed = printed + target
-      val inputs = allInputs(target)
-      val inputModules = inputs.map(i => modules(i))
-      if (inputModules.nonEmpty) {
-        println(s"${indent}Inputs of $target: ${inputs.mkString(",")}")
-        inputModules.foreach(m => {
-          println(s"${indent}$m")
-          findInputs(allInputs, modules, m.name, indent + " ")
-        })
-      }
-    }
-  }
-
-  def simulate2(inputs: Map[Name, Seq[Name]], startingModules: Map[Name, Module]): Long = {
-    var modules = startingModules
-    var messages = Seq[Message]()
-    var nbrButtonPresses = 0L
-    var continue = true
-
-    // "mk,fp,xt,zc -> kl"
-    // "&kl -> rx"
-    val special: Seq[Name] = inputs("kl")
-    println(special)
-
-    val maxIter = 10000
-    var i = 0
-
-    var flippedAt = Map[Name, Seq[Long]]().withDefaultValue(Seq.empty)
-//    var seen = Map[(Name, String), Long]()
-
-    while (i < maxIter && continue) {
-      nbrButtonPresses += 1
-      messages = messages :+ Message("button", "broadcaster", Low)
-
-      // println("")
-      // val conjunctions = modules.collect { case (name, c: Conjunction) => c}
-      // conjunctions.foreach { c =>
-      //   val bits = c.getBits()
-      //   if(seen.contains((c.name, bits))) {
-      //     println(s"Already seen ${c.name} $bits at ${seen((c.name, bits))}")
-      //   } else {
-      //     seen = seen + ((c.name, bits) -> nbrButtonPresses)
-      //   }
-      //   println(c)
-      // }
-
-      while (messages.nonEmpty) {
-        messages.head match {
-          case Message(source, destination, pulse) =>
-            val module = modules(destination)
-            module match {
-              case Broadcast(name, outputs) =>
-                messages = messages ++ outputs.map(output => Message(name, output, pulse))
-              case FlipFlop(name, outputs, on) =>
-                if (pulse == Low) {
-                  val outputPulse = if (on) {
-                    Low
-                  } else {
-                    High
-                  }
-                  messages = messages ++ outputs.map(output => Message(name, output, outputPulse))
-                  modules = modules.updated(name, FlipFlop(name, outputs, !on))
-                }
-              case Conjunction(name, outputs, lastReceived) =>
-                if (pulse == Low && special.contains(name)) {
-                  println(s"Got low pulse for $name at $nbrButtonPresses")
-                }
-
-
-                val newLastReceived = lastReceived.updated(source, pulse)
-                modules = modules.updated(name, Conjunction(name, outputs, newLastReceived))
-                val outputPulse = if (newLastReceived.forall(_._2 == High)) {
-                  Low
-                } else {
-                  High
-                }
-                flippedAt = flippedAt.updated(name, flippedAt(name) :+ nbrButtonPresses)
-                messages = messages ++ outputs.map(output => Message(name, output, outputPulse))
-              case Output(name) =>
-                if (pulse == Low && name == "rx") {
-                  continue = false
-                }
-            }
-        }
-        messages = messages.tail
-      }
-      i += 1
-    }
-
-    // flippedAt.foreach { case (name, indices) =>
-    //   println(s"$name flipped at ${indices.mkString(",")}")
-    // }
-
-
-    if(i == maxIter){
-      throw new Exception("Max iter reached")
-    }
-    nbrButtonPresses
+    findRequiredButtonPresses(inputs, modules)
   }
 
   def simulate(startingModules: Map[Name, Module]): Long = {
@@ -203,7 +76,71 @@ object Day20 {
     nbrSent.values.product
   }
 
-  // TODO make snippet for this
+  def findRequiredButtonPresses(inputs: Map[Name, Seq[Name]], startingModules: Map[Name, Module]): Long = {
+    // "&kl -> rx"
+    // "mk,fp,xt,zc -> kl"
+
+    // Assumes rx only has one conjunction input
+    val rxInput = inputs("rx").head
+
+    // We also assume that rxInput only has conjunction inputs with a single input each
+    // They all individually cycle between receiving Low and High.
+    // When they receive Low, they send High next time, and vice versa.
+    // When they all have received Low at the same time, they will send a High output to rxInput next time they get a pulse.
+    // When rxInput receives High from every input, it will send a Low to the output which is what we want
+    // So we need to calculate the common cycle (LCM) to find the answer.
+    val conjunctions: Seq[Name] = inputs(rxInput)
+    var cycles = Map[Name, Long]()
+
+    var modules = startingModules
+    var messages = Seq[Message]()
+    var nbrButtonPresses = 0L
+    while (cycles.size < conjunctions.size) {
+      nbrButtonPresses += 1
+      messages = messages :+ Message("button", "broadcaster", Low)
+
+      while (messages.nonEmpty) {
+        messages.head match {
+          case Message(source, destination, pulse) =>
+            val module = modules(destination)
+            module match {
+              case Broadcast(name, outputs) =>
+                messages = messages ++ outputs.map(output => Message(name, output, pulse))
+              case FlipFlop(name, outputs, on) =>
+                if (pulse == Low) {
+                  val outputPulse = if (on) {
+                    Low
+                  } else {
+                    High
+                  }
+                  messages = messages ++ outputs.map(output => Message(name, output, outputPulse))
+                  modules = modules.updated(name, FlipFlop(name, outputs, !on))
+                }
+              case Conjunction(name, outputs, lastReceived) =>
+                if (pulse == Low && conjunctions.contains(name)) {
+                  if (!cycles.contains(name)) {
+                    cycles = cycles.updated(name, nbrButtonPresses)
+                  }
+                }
+
+                val newLastReceived = lastReceived.updated(source, pulse)
+                modules = modules.updated(name, Conjunction(name, outputs, newLastReceived))
+                val outputPulse = if (newLastReceived.forall(_._2 == High)) {
+                  Low
+                } else {
+                  High
+                }
+                messages = messages ++ outputs.map(output => Message(name, output, outputPulse))
+              case Output(name) =>
+            }
+        }
+        messages = messages.tail
+      }
+    }
+
+    lcm(cycles.values.toSeq)
+  }
+
   def parse(input: Seq[String]) = {
     var inputs = Map[Name, Seq[Name]]().withDefaultValue(Seq.empty)
     var modules = input

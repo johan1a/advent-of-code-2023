@@ -308,4 +308,29 @@ object Utils {
     newData
   }
 
+  // Math sux amirite?!
+  def lcm(nn: Seq[Long]): Long = {
+    var a = nn.head
+    var i = 1
+    while (i < nn.size) {
+      val b = nn(i)
+      a = lcm(a, b)
+      i += 1
+    }
+    a
+  }
+
+  def lcm(a: Long, b: Long): Long = {
+    Math.abs(a * b) / gcd(a, b)
+  }
+
+  def gcd(a: Long, b: Long): Long = {
+    if (a == 0 && b == 0) {
+      0
+    } else if (b == 0) {
+      a
+    } else {
+      gcd(b, a % b)
+    }
+  }
 }
