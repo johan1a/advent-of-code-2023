@@ -24,7 +24,59 @@ object Day20 {
   }
 
   def part2(input: Seq[String]): Long = {
-    -1
+    val modules = parse(input)
+    simulate2(modules)
+  }
+
+  def simulate2(startingModules: Map[Name, Module]): Long = {
+    var modules = startingModules
+    var messages = Seq[Message]()
+    var nbrButtonPresses = 0
+    var continue = true
+    while (continue) {
+      nbrButtonPresses += 1
+      messages = messages :+ Message("button", "broadcaster", Low)
+
+      if (nbrButtonPresses % 10000 == 0) {
+        println(nbrButtonPresses)
+      }
+
+      while (messages.nonEmpty) {
+        messages.head match {
+          case Message(source, destination, pulse) =>
+            val module = modules(destination)
+            module match {
+              case Broadcast(name, outputs) =>
+                messages = messages ++ outputs.map(output => Message(name, output, pulse))
+              case FlipFlop(name, outputs, on) =>
+                if (pulse == Low) {
+                  val outputPulse = if (on) {
+                    Low
+                  } else {
+                    High
+                  }
+                  messages = messages ++ outputs.map(output => Message(name, output, outputPulse))
+                  modules = modules.updated(name, FlipFlop(name, outputs, !on))
+                }
+              case Conjunction(name, outputs, lastReceived) =>
+                val newLastReceived = lastReceived.updated(source, pulse)
+                modules = modules.updated(name, Conjunction(name, outputs, newLastReceived))
+                val outputPulse = if (newLastReceived.forall(_._2 == High)) {
+                  Low
+                } else {
+                  High
+                }
+                messages = messages ++ outputs.map(output => Message(name, output, outputPulse))
+              case Output(name) =>
+                if (pulse == Low && name == "rx") {
+                  continue = false
+                }
+            }
+        }
+        messages = messages.tail
+      }
+    }
+    nbrButtonPresses
   }
 
   def simulate(startingModules: Map[Name, Module]): Long = {
@@ -101,17 +153,17 @@ object Day20 {
       }
       .map {
         case c: Conjunction => c.copy(lastReceived = inputs(c.name).map(input => input -> Low).toMap)
-        case c   => c
+        case c              => c
       }
       .map { module =>
         module.name -> module
       }
       .toMap
-      inputs.map { case (name, inputs) =>
-        if(!modules.contains(name)) {
-          modules = modules.updated(name, Output(name))
-        }
+    inputs.map { case (name, inputs) =>
+      if (!modules.contains(name)) {
+        modules = modules.updated(name, Output(name))
       }
+    }
     modules
   }
 }
