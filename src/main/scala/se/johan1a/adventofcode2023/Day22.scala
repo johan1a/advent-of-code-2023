@@ -9,13 +9,13 @@ object Day22 {
   def part1(input: Seq[String]): Int = {
     val bricks = parse(input)
     val staticBricks = fall(bricks)
-    println("bricks")
-    staticBricks.foreach(println)
-    // printBricks(staticBricks)
-    val c = count(staticBricks)
-    // println("\nstatic")
-    // staticBricks.takeRight(20).foreach(println)
-    c
+    count(staticBricks)
+  }
+
+  def part2(input: Seq[String]): Int = {
+    val bricks = parse(input)
+    val staticBricks = fall(bricks)
+    count2(staticBricks)
   }
 
   def count(bricks: Seq[Brick]) = {
@@ -23,38 +23,38 @@ object Day22 {
       brick -> bricks.filter(b => b.end.z == brick.start.z - 1 && intersectsXY(brick, b))
     }.toMap
 
-    // supporting.foreach { (k,v)=>
-    //   println(s"$k supports $v")
-    // }
-
-    var supportedBy = Map[Int, Set[Int]]().withDefaultValue(Set.empty)
-
-    val result = bricks.filter { brick =>
+    bricks.filter { brick =>
       val bricksAbove = bricks
         .filter(b => b.start.z == brick.end.z + 1 && intersectsXY(brick, b))
 
-      bricksAbove.map { b =>
-        supportedBy = supportedBy.updated(b.id, supportedBy(b.id) + brick.id)
-      }
-
-      val result = bricksAbove.filter(above => supporting(above).size == 1).isEmpty
-
-      // println(s"\nbricks above $brick:")
-      // bricksAbove.foreach(b => {
-      //   println(s"$b nbr supporting: ${supporting(b).size}")
-      //   println("supported by: ")
-      //   supporting(b).foreach(println)
-      // })
-      // println(s"Can be removed? $result")
-
-      result
+      bricksAbove.filter(above => supporting(above).size == 1).isEmpty
     }.size
+  }
 
-    supportedBy.map { (k, v) =>
-      println(s"$k resting on {${v.toSeq.sorted.mkString(", ")}}")
+  def count2(bricks: Seq[Brick]) = {
+    val supporting: Map[Int, Seq[Int]] = bricks.map { brick =>
+      brick.id -> bricks.filter(b => b.end.z == brick.start.z - 1 && intersectsXY(brick, b)).map(_.id)
+    }.toMap
+    val above = bricks.map { brick =>
+      brick.id -> bricks.filter(b => b.start.z == brick.end.z + 1 && intersectsXY(brick, b)).map(_.id)
+    }.toMap
+    bricks.map(b => countDisintegrating(supporting, above, b) - 1).sum
+  }
+
+  def countDisintegrating(below: Map[Int, Seq[Int]], above: Map[Int, Seq[Int]], brick: Brick) = {
+    var disintegrated = Set[Int]()
+    def disintegrate(b: Int): Unit = {
+      if (!disintegrated.contains(b)) {
+        disintegrated = disintegrated + b
+        above(b).foreach { parent =>
+          if (below(parent).forall(disintegrated.contains)) {
+            disintegrate(parent)
+          }
+        }
+      }
     }
-
-    result
+    disintegrate(brick.id)
+    disintegrated.size
   }
 
   def fall(allBricks: Seq[Brick]) = {
@@ -69,7 +69,7 @@ object Day22 {
       var max = -1L
       brick.start.x.to(brick.end.x).foreach { x =>
         brick.start.y.to(brick.end.y).foreach { y =>
-          val h : Long = maxHeight(Vec2(x, y))
+          val h: Long = maxHeight(Vec2(x, y))
           if (h > max) {
             max = h
             maxHeight = maxHeight.updated(Vec2(x, y), h)
@@ -97,12 +97,7 @@ object Day22 {
 
   def intersectsXY(a: Brick, b: Brick): Boolean = {
     val outside: Boolean = b.start.x > a.end.x || a.start.x > b.end.x || b.start.y > a.end.y || a.start.y > b.end.y
-    // println(s"$a intersects with $b ? ${!outside}")
     !outside
-  }
-
-  def part2(input: Seq[String]): Int = {
-    -1
   }
 
   def parse(input: Seq[String]): Seq[Brick] = {
