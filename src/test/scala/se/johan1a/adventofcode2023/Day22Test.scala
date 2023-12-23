@@ -55,7 +55,8 @@ class Day22Test extends munit.FunSuite {
     val b = Brick(Vec3(0, 0, 3), Vec3(1, 1, 5))
 
     val expected = Seq(
-      Brick(Vec3(0, 0, 3), Vec3(1, 1, 5)), a
+      Brick(Vec3(0, 0, 3), Vec3(1, 1, 5)),
+      a
     )
 
     assertEquals(Day22.fall(Seq(a, b)), expected)
