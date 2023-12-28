@@ -9,15 +9,13 @@ object Day25 {
         k -> v
       }
     }.distinct
-    // println(nbrComponents)
-    graph.foreach(println)
     var best = -1
     val size = 0
       .until(connections.size)
       .flatMap { i =>
         (i + 1).until(connections.size).flatMap { j =>
           (j + 1).until(connections.size).map { k =>
-            if(i%10==0) {
+            if (k % 10 == 0) {
               println(s"i $i j $j k $k / ${connections.size}")
             }
             val disconnected = Seq(
@@ -31,14 +29,14 @@ object Day25 {
             val start = graph.keys.find(c => !disconnected.exists(d => d._1 == c || d._2 == c)).get
             val debug = false && (
               disconnected.contains(("hfx" -> "pzl")) && disconnected.contains(("bvb" -> "cmg"))
-              && disconnected.contains(("nvd" -> "jqt"))
+                && disconnected.contains(("nvd" -> "jqt"))
             )
             val a = groupSize(graph, disconnected, start, debug)
             val b = nbrComponents - a
             val ans = a * b
-            if(ans > best){
+            if (ans > best) {
               best = ans
-              println(s"new best: $best, a $a b $b")
+              println(s"new best: $best, a $a b $b disconnected $disconnected")
             }
             // if (debug) {
             //   println(s"start: $start, a: $a, disconnected: $disconnected")
@@ -50,16 +48,22 @@ object Day25 {
       .min
     println(s"size: $size nbrComponents: $nbrComponents")
 
+    // graph.foreach(println)
     val b = nbrComponents - size
     size * b
   }
 
-  def groupSize(graph: Map[String, Seq[String]], disconnected: Seq[(String, String)], start: String, debug:Boolean=false) = {
+  def groupSize(
+      graph: Map[String, Seq[String]],
+      disconnected: Seq[(String, String)],
+      start: String,
+      debug: Boolean = false
+  ) = {
     var seen = Set[String]()
     var queue = Seq(start)
     while (queue.nonEmpty) {
       val curr = queue.head
-      if(debug){
+      if (debug) {
         println(curr)
       }
       queue = queue.tail

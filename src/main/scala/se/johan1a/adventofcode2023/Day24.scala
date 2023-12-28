@@ -4,10 +4,12 @@ import se.johan1a.adventofcode2023.Utils._
 
 object Day24 {
 
+  case class Vec2d(x: Double, y: Double)
+
   case class Stone(pos: Vec3, velocity: Vec3)
 
   // y = kx + m
-  case class StoneXy(pos: Vec2, velocity: Vec2, k: Double, m: Double)
+  case class StoneXy(pos: Vec2, velocity: Vec2, k: Double, m: Double, zPos: Long, zVelocity: Long)
 
   // (x, y, z) = (vx, vy, vz) * t
   // x = vx * t
@@ -97,26 +99,28 @@ object Day24 {
 
   def part1(input: Seq[String], min: Long = 200000000000000L, max: Long = 400000000000000L): Long = {
     val stones = parse(input).map(calculateXyLine)
-    0.until(stones.size).flatMap { i =>
-      (i+1).until(stones.size).filter { j =>
-       val c = collides(min, max, stones(i), stones(j))
-       // if(c) {
-       //   println(s"${stones(i)} collides with ${stones(j)}}")
-       // }
+    0.until(stones.size)
+      .flatMap { i =>
+        (i + 1).until(stones.size).filter { j =>
+          val c = collides(min, max, stones(i), stones(j))
+          // if(c) {
+          //   println(s"${stones(i)} collides with ${stones(j)}}")
+          // }
 
-       c
+          c
+        }
       }
-    }.size
+      .size
   }
 
   def collides(min: Long, max: Long, a: StoneXy, b: StoneXy): Boolean = {
-    if(a.k == b.k) {
+    if (a.k == b.k) {
       // parallel
       false
     } else {
       val xc = (b.m - a.m) / (a.k - b.k)
       val yc = a.k * xc + a.m
-      //println(s"a: $a, b: $b, collision at: ($xc, $yc)")
+      // println(s"a: $a, b: $b, collision at: ($xc, $yc)")
       if (xc < min || xc > max || yc < min || yc > max) {
         false
       } else {
@@ -130,6 +134,26 @@ object Day24 {
     }
   }
 
+  def parallel(a: StoneXy, b: StoneXy): Boolean = {
+    a.k==b.k
+  }
+
+  def getFutureCollision(a: StoneXy, b: StoneXy): Option[Vec2d] = {
+    if (parallel(a, b)) {
+      None
+    } else {
+      val xc = (b.m - a.m) / (a.k - b.k)
+      val yc = a.k * xc + a.m
+      // println(s"a: $a, b: $b, collision at: ($xc, $yc)")
+      val ta = (xc - a.pos.x) / a.velocity.x
+      val tb = (xc - b.pos.x) / b.velocity.x
+      // if (ta>=0 && tb >=0) {
+      //   println(s"${a} ${b} collision at x: $xc, ta: $ta, tb: $tb}")
+      // }
+      Option.when(ta >= 0 && tb >= 0)(Vec2d(xc, yc))
+    }
+  }
+
   def calculateXyLine(stone: Stone): StoneXy = {
     val x0 = stone.pos.x
     val y0 = stone.pos.y
@@ -139,19 +163,128 @@ object Day24 {
     val x1 = vX + x0
     val y1 = vY + y0
     val k = (y1 - y0) / (x1.toDouble - x0)
-    //println(s"$stone (x0, y0) ($x0, $y0) (x1, y1) ($x1, $y1) k: $k")
+    // println(s"$stone (x0, y0) ($x0, $y0) (x1, y1) ($x1, $y1) k: $k")
     val m = y0 - (k * x0)
 
     StoneXy(
       pos = Vec2(x0, y0),
       velocity = Vec2(vX, vY),
       k = k,
-      m = m
+      m = m,
+      zPos=stone.pos.z,
+      zVelocity=stone.velocity.z,
     )
   }
 
+  // (x, y, z) = (x0, y0, z0) + (vx, vy, vz) * t
+  // (xs, ys, zs) = (x0, y0, z0) + (vx - vxs, vy - vys, vz - vzs) * t
   def part2(input: Seq[String]): Long = {
-    -1
+    val stones = parse(input)
+
+    var answer = -1L
+    val maxV = 500
+
+    // test rock pos:
+    // 24 13 10
+    // velocity:
+    // -3 1 2
+    var vx = -maxV-1
+    var rvxOpt: Option[Double] = None
+    var rvyOpt: Option[Int] = None
+    while (vx < maxV && rvyOpt.isEmpty) {
+      vx+=1
+      val foundVY = (-maxV).until(maxV).find { vy =>
+        val modifiedStones = stones.map { stone =>
+          stone.copy(velocity =
+            stone.velocity.copy(
+              x = stone.velocity.x - vx,
+              y = stone.velocity.y - vy
+            )
+          )
+        }
+        val xyStones: Seq[StoneXy] = modifiedStones.map(calculateXyLine)
+        var j = 1
+        val firstStone = xyStones(0)
+        while (parallel(firstStone, xyStones(j))) {
+          j += 1
+        }
+        val firstCollision = getFutureCollision(firstStone, xyStones(j))
+        if (firstCollision.isDefined) {
+          if(vx == -3 && vy == 1) {
+            println(s"first collision: $firstCollision, first stone: $firstStone, other stone: ${xyStones(j)}")
+          }
+          var nbrParallel = 0
+          val nbrCollisions = xyStones.filter { stone =>
+            val collision = getFutureCollision(firstStone, stone)
+            val areParallel = parallel(firstStone, stone)
+            if(vx == -3 && vy == 1) {
+              println(s"collision between ${firstStone} and $stone: $collision")
+            }
+            if(areParallel){
+              nbrParallel += 1
+            }
+            areParallel || vec2dAreEqual(collision, firstCollision)
+          }.size
+          val allCollide = nbrCollisions == xyStones.size
+          if ((vx == -3 && vy == 1) || allCollide) {
+            println(s"Nbr collisions: $nbrCollisions for vx $vx vy $vy at $firstCollision")
+          }
+          if (allCollide) {
+            // collisionX = x0 + t * vx
+            // t = (collisionX - x0) / vx
+            println(s"Every stone collides at $firstCollision")
+
+            val foundStoneVZ = (-maxV).until(maxV).find { vz =>
+              val firstCollisionT = (firstCollision.get.x - firstStone.pos.x) / firstStone.velocity.x
+              // collisionZ = z0 + collisionT * vz
+              val firstCollisionZ = firstStone.zPos + firstCollisionT * (firstStone.zVelocity - vz)
+              if (vx == -3 && vy == 1 && vz == 2) {
+                println(s"firstCollisionT: $firstCollisionT firstCollisionZ: ${firstCollisionZ}")
+              }
+
+              val allZAreEqual = xyStones.filter(!parallel(firstStone, _)).forall { stone =>
+                val collisionT = (firstCollision.get.x - stone.pos.x) / stone.velocity.x
+                val collisionZ = stone.zPos + collisionT * (stone.zVelocity - vz)
+                if (vx == -3 && vy == 1 && vz == 2) {
+                  println(s"stone $stone collisionT: $collisionT collisionZ: $collisionZ")
+                }
+
+                collisionZ == firstCollisionZ
+              }
+              allZAreEqual
+            }
+
+            val firstCollisionT = (firstCollision.get.x - firstStone.pos.x) / firstStone.velocity.x
+            val collisionZ = firstStone.zPos + firstCollisionT * (firstStone.zVelocity - foundStoneVZ.get)
+
+            println(s"Every stone collides at $firstCollision hail vz: ${foundStoneVZ} collision Z: $collisionZ")
+            println(s"Stone starts at ${firstCollision.get} ${collisionZ} velocity $vx $vy ${foundStoneVZ.get}")
+            answer = (firstCollision.get.x + firstCollision.get.y + collisionZ).toLong
+          }
+          allCollide
+        } else {
+          false
+        }
+      }
+      if (foundVY.isDefined) {
+        println(s"found vx vy: $vx ${foundVY.get}")
+        rvyOpt = foundVY
+        rvxOpt = Some(vx)
+      }
+    }
+    answer
+  }
+
+  def vec2dAreEqual(a: Option[Vec2d], b: Option[Vec2d]): Boolean = {
+    (a, b) match {
+      case (Some(Vec2d(xa, ya)), Some(Vec2d(xb, yb))) => doublesAreEqual(xa, xb) && doublesAreEqual(ya, yb)
+      case _ => false
+    }
+  }
+
+  def doublesAreEqual(a: Double, b: Double): Boolean = {
+    val tolerance = 0.00001d
+    a - b < tolerance
   }
 
   def parse(input: Seq[String]) = {
