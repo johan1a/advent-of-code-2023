@@ -104,12 +104,7 @@ object Day24 {
     0.until(stones.size)
       .flatMap { i =>
         (i + 1).until(stones.size).filter { j =>
-          val c = collides(min, max, stones(i), stones(j))
-          // if(c) {
-          //   println(s"${stones(i)} collides with ${stones(j)}}")
-          // }
-
-          c
+          collides(min, max, stones(i), stones(j))
         }
       }
       .size
@@ -124,17 +119,12 @@ object Day24 {
         case (Right(ak), Right(bk)) =>
           val xc = (b.m.get - a.m.get) / (ak - bk)
           val yc = ak * xc + a.m.get
-          // println(s"a: $a, b: $b, collision at: ($xc, $yc)")
           if (xc < min || xc > max || yc < min || yc > max) {
             false
           } else {
             val ta = (xc - a.pos.x) / a.velocity.x
             val tb = (xc - b.pos.x) / b.velocity.x
-            // if (ta>=0 && tb >=0) {
-            //   println(s"${a} ${b} collision at x: $xc, ta: $ta, tb: $tb}")
-            // }
             ta >= 0 && tb >= 0
-
           }
         case (Left(Inf()), Right(bk))   => ???
         case (Right(ak), Left(Inf()))   => ???
@@ -194,10 +184,9 @@ object Day24 {
     val tolerance = 0.00001
     val k = ((BigDecimal(x1) - BigDecimal(x0))) match {
       case diff if diff > tolerance || diff < -tolerance => Right((y1 - y0) / diff)
-      case _ => Left(Inf())
+      case _                                             => Left(Inf())
     }
 
-    // println(s"$stone (x0, y0) ($x0, $y0) (x1, y1) ($x1, $y1) k: $k")
     val m = k match {
       case Left(Inf()) => None
       case Right(n)    => Some(y0 - (n * x0))
@@ -211,25 +200,17 @@ object Day24 {
     )
   }
 
-  var mostNbrXyCollisions = 0
-
   // (x, y, z) = (x0, y0, z0) + (vx, vy, vz) * t
   // (xs, ys, zs) = (x0, y0, z0) + (vx - vxs, vy - vys, vz - vzs) * t
   def part2(input: Seq[String], maxV: Int = 100): Long = {
-    println("Start part2")
     val stones = parse(input)
     var answer: Option[Long] = None
-    mostNbrXyCollisions = 0
-    // test rock pos:
-    // 24 13 10
-    // velocity:
-    // -3 1 2
-//    (-maxV - 1)
-    val foundX=205.until(maxV).find { vx =>
-      println(s"vx $vx / $maxV")
+    (-maxV - 1).until(maxV).find { vx =>
+      if (vx % 10 == 0) {
+        println(s"vx $vx")
+      }
       findVy(maxV, vx, stones) match {
         case Some(vy) =>
-          println(s"vx $vx found vy? $vy")
           val modifiedStones = stones.map { stone =>
             stone.copy(velocity =
               stone.velocity.copy(
@@ -241,30 +222,19 @@ object Day24 {
           val firstStone = modifiedStones.head
           val firstCollision = getFutureCollisionXy(firstStone, modifiedStones.last)
           val vz = findVz(maxV, vx, vy, firstCollision.get, firstStone, modifiedStones)
-          if ((vx == 206 && vy == 70)) {
-            println(s"vz: $vz")
-          }
           val firstCollisionT = (firstCollision.get.x - firstStone.pos.x) / firstStone.velocity.x
           val collisionZ = firstStone.pos.z + firstCollisionT * (firstStone.velocity.z - vz.get)
-
-          println(s"Every stone collides at $firstCollision hail vz: ${vz} collision Z: $collisionZ")
-          println(s"Stone starts at ${firstCollision.get} ${collisionZ} velocity $vx ${vy} ${vz.get}")
           answer = Some((firstCollision.get.x + firstCollision.get.y + collisionZ).toLong)
           true
         case _ => false
       }
     }
-    println(s"outside loop foundX $foundX")
 
     answer.get
   }
 
   def findVy(maxV: Int, vx: Int, stones: Seq[Stone]) = {
-    println("start findvy")
     val foundVY = (-maxV).until(maxV).find { vy =>
-      if(vy%100==0){
-        println(s"vx $vx vy $vy")
-      }
       val modifiedStones = stones.map { stone =>
         stone.copy(velocity =
           stone.velocity.copy(
@@ -280,46 +250,26 @@ object Day24 {
       }
       val firstCollision = getFutureCollisionXy(firstStone, modifiedStones(j))
       if (firstCollision.isEmpty) {
-
         false
       } else {
         val nbrCollisions = modifiedStones.filter { stone =>
           val collision = getFutureCollisionXy(firstStone, stone)
           val areParallel = parallelXy(firstStone, stone)
 
-          val areEqual = vec2dAreEqual(collision, firstCollision)
-          if ((vx == 206 && vy == 70)) {
-            val diff = collision.map(c => Vec2d(c.x - firstCollision.get.x, c.y - firstCollision.get.y))
-            println(s"first collision $firstCollision collision $collision areEqual $areEqual diff $diff")
-          }
-
-          areParallel || areEqual
+          areParallel || vec2dAreEqual(collision, firstCollision)
         }.size
-        if (nbrCollisions > mostNbrXyCollisions) {
-          mostNbrXyCollisions = nbrCollisions
-          println(s"Nbr collisions: $nbrCollisions / ${modifiedStones.size} for vx $vx vy $vy at $firstCollision")
-        }
-        val allCollide = nbrCollisions == modifiedStones.size
-        if ((vx == 206 && vy == 70) || allCollide) {
-          println(s"Nbr collisions: $nbrCollisions / ${modifiedStones.size} for vx $vx vy $vy at $firstCollision")
-        }
-        allCollide
+        nbrCollisions == modifiedStones.size
       }
     }
     foundVY
   }
 
   def findVz(maxV: Int, vx: Int, vy: Int, firstCollision: Vec2d, firstStone: Stone, modifiedStones: Seq[Stone]) = {
-
     (-maxV).until(maxV).find { vz =>
       val firstCollisionT = (firstCollision.x - firstStone.pos.x) / firstStone.velocity.x
-      // collisionZ = z0 + collisionT * vz
       val firstCollisionZ = firstStone.pos.z + firstCollisionT * (firstStone.velocity.z - vz)
-      if(vz == 247) {
-        println(s"firstCollisionZ: $firstCollisionZ")
-      }
       val allZAreEqual = modifiedStones.filter(!parallelXy(firstStone, _)).forall { stone =>
-        val collisionT = if(stone.velocity.x != 0) {
+        val collisionT = if (stone.velocity.x != 0) {
           (firstCollision.x - stone.pos.x) / stone.velocity.x
         } else {
           (firstCollision.y - stone.pos.y) / stone.velocity.y
