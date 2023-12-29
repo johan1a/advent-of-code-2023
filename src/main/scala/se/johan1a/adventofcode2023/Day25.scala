@@ -1,56 +1,120 @@
 package se.johan1a.adventofcode2023
 
-import scala.collection.mutable.PriorityQueue
-
 object Day25 {
 
   def part1(input: Seq[String]): Int = {
-    val (graph, nbrComponents) = parse(input)
-    var edgeCounts = Map[Seq[String], Int]().withDefaultValue(0)
-    var mostUsedEdges = Seq[Seq[String]]()
-    0.until(3).foreach { i =>
-      graph.keys.foreach { start =>
-        if (!mostUsedEdges.exists(e => e.contains(start))) {
-          val counts = countEdges(graph, start, mostUsedEdges)
-          counts.foreach { case (edge, count) =>
-            edgeCounts = edgeCounts.updated(edge, edgeCounts(edge) + count)
-          }
-        }
-      }
-      val mostUsedEdge = edgeCounts.maxBy(_._2)._1
-      mostUsedEdges = mostUsedEdges :+ mostUsedEdge
-    }
-
-    val start = mostUsedEdges.head.head
-    val aSize = groupSize(graph, mostUsedEdges, start)
-    val bSize = nbrComponents - aSize
-    aSize * bSize
+    val graph = parse(input)
+    val source = graph.keys.head
+    val sink = getFurthestAway(graph, source)
+    val groupSize = getMinCutGroupSize(graph, source, sink)
+    val otherGroupSize = graph.keys.size - groupSize
+    groupSize * otherGroupSize
   }
 
-  def countEdges(graph: Map[String, Seq[String]], start: String, disconnectedEdges: Seq[Seq[String]]) = {
-    var edgeCounts = Map[Seq[String], Int]().withDefaultValue(0)
-    var seen = Set[String]()
-    var dists = Map[String, Int]().withDefaultValue(Int.MaxValue)
-    val queue = new PriorityQueue[(String, Int)]()(Ordering.by(t => -t._2))
-    queue += ((start, 0))
-    var last = start
-    while (queue.nonEmpty) {
-      val (curr, d) = queue.dequeue()
-      if (!seen.contains(curr)) {
-        seen = seen + curr
-        last = curr
-        graph(curr).foreach { neighbor =>
-          val edge = Seq(curr, neighbor).sorted
-          if (!disconnectedEdges.contains(edge) && !seen.contains(neighbor) && d + 1 < dists(neighbor)) {
-            dists = dists.updated(neighbor, d + 1)
-            queue += ((neighbor, d + 1))
-            val edge = Seq(curr, neighbor).sorted
-            edgeCounts = edgeCounts.updated(edge, edgeCounts(edge) + 1)
-          }
+  def getMinCutGroupSize(originalGraph: Map[String, Map[String, Int]], source: String, sink: String) = {
+    var graph = originalGraph
+    var parent = Map[String, String]()
+    var maxFlow = 0
+
+    var existsResidualPath = false
+    val (newParent, newExistsResidualPath) = findPath(graph, source, sink)
+    parent = newParent
+    existsResidualPath = newExistsResidualPath
+    while (existsResidualPath) {
+
+      var pathFlow = Int.MaxValue
+      var curr = sink
+      while (curr != source) {
+        val p = parent(curr)
+        pathFlow = Math.min(pathFlow, graph(p)(curr))
+        curr = p
+      }
+      maxFlow += pathFlow
+
+      curr = sink
+      while (curr != source) {
+        val p = parent(curr)
+        graph = graph.updated(p, graph(p) + (curr -> (graph(p)(curr) - pathFlow)))
+        graph = graph.updated(curr, graph(curr) + (p -> (graph(curr)(p) + pathFlow)))
+        curr = p
+      }
+
+      val (newParent, newExistsResidualPath) = findPath(graph, source, sink)
+      parent = parent ++ newParent
+      existsResidualPath = newExistsResidualPath
+    }
+
+    val visited = flood(graph, source)
+
+    originalGraph.foreach { case (node, neighbors) =>
+      neighbors.foreach { case (neighbor, originalCapacity) =>
+        if (visited(node) && !visited(neighbor)) {
+          // println(s"$node -> $neighbor should be disconnected")
         }
       }
     }
-    edgeCounts
+    visited.size
+  }
+
+  def flood(graph: Map[String, Map[String, Int]], source: String) = {
+    var visited = Set[String]()
+    var queue = Seq(source)
+    while (queue.nonEmpty) {
+      val curr = queue.head
+      queue = queue.tail
+      visited = visited + curr
+      graph(curr).foreach { case (neighbor, residual) =>
+        if (!visited.contains(neighbor) && graph(curr)(neighbor) > 0) {
+          queue = queue :+ neighbor
+        }
+      }
+    }
+    visited
+  }
+
+  def findPath(graph: Map[String, Map[String, Int]], source: String, sink: String) = {
+    var parent = Map[String, String]()
+    var queue = Seq(source)
+    var seen = Set[String]()
+    var found = false
+    while (queue.nonEmpty) {
+      val curr = queue.head
+      queue = queue.tail
+      if (curr == sink) {
+        found = true
+      }
+      seen = seen + curr
+      graph(curr).foreach { (neighbor, remainingFlow) =>
+        if (!seen.contains(neighbor) && remainingFlow > 0) {
+          seen = seen + neighbor
+          queue = queue :+ neighbor
+          parent = parent + (neighbor -> curr)
+        }
+      }
+    }
+    if (found) {
+      (parent, true)
+    } else {
+      (Map.empty, false)
+    }
+  }
+
+  def getFurthestAway(graph: Map[String, Map[String, Int]], start: String) = {
+    var furthestAway = start
+    var queue = Seq(start)
+    var seen = Set[String]()
+    while (queue.nonEmpty) {
+      val curr = queue.head
+      queue = queue.tail
+      if (!seen.contains(curr)) {
+        seen = seen + curr
+        graph(curr).foreach { (neighbor, _) =>
+          furthestAway = neighbor
+          queue = queue :+ neighbor
+        }
+      }
+    }
+    furthestAway
   }
 
   def groupSize(
@@ -74,19 +138,17 @@ object Day25 {
   }
 
   def parse(input: Seq[String]) = {
-    var allComponents = Set[String]()
-    var neighbors = Map[String, Seq[String]]().withDefaultValue(Seq.empty)
+    var neighbors = Map[String, Map[String, Int]]().withDefaultValue(Map.empty)
     input.foreach { line =>
       line match {
         case s"$src: $dests" =>
-          allComponents = allComponents + src ++ dests.split(" ")
-          neighbors = neighbors + (src -> (neighbors(src) ++ dests.split(" ").toSeq))
+          neighbors = neighbors + (src -> (neighbors(src) ++ dests.split(" ").toSeq.map(d => (d -> 1))))
           dests.split(" ").foreach { dest =>
-            neighbors = neighbors + (dest -> (neighbors(dest) :+ src))
+            neighbors = neighbors + (dest -> (neighbors(dest) + (src -> 1)))
           }
       }
 
     }
-    (neighbors, allComponents.size)
+    neighbors
   }
 }
